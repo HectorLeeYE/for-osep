@@ -3,7 +3,7 @@
 # NimSyscallPacker — Linux setup + compile helper
 #
 # Installs Nim + MinGW-w64 + the required nimble dependencies, then compiles
-# the packer. After that, use NimSyscallLoader to pack Sliver shellcode.
+# the packer. After that, use NimSyscallLoader to pack msfvenom shellcode.
 #
 # Usage:
 #   bash nimsyscallpacker/build.sh setup    # install toolchain + deps

