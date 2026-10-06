@@ -44,7 +44,8 @@ csc /target:exe /platform:x64 /optimize+ /out:InstallUtil.exe installutil.cs `
 | `run.txt` | Your PowerShell payload |
 
 ```bash
-python3 -m http.server 80
+sudo systemctl start apache2
+sudo cp InstallUtil.exe amsi.txt run.txt /var/www/html/
 ```
 
 **3. Update `vbagen.py` with your IP and run it:**

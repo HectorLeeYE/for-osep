@@ -33,7 +33,7 @@ C# shellcode runners using AES-256-CBC encryption. Shellcode is encrypted on the
 ---
 
 ### `amsi-bypass/`
-PowerShell AMSI bypass scripts. The `amsi-bypass.ps1` patches `AmsiOpenSession` directly in memory — more reliable than the `amsiInitFailed` reflection trick which gets caught regularly. `amsi-techniques.md` documents all three approaches with code.
+PowerShell AMSI bypass scripts. The `amsi-bypass.ps1` patches `AmsiScanBuffer` directly in memory — more reliable than the `amsiInitFailed` reflection trick which gets caught regularly. `amsi-techniques.md` documents all three approaches with code.
 
 ---
 
@@ -53,7 +53,7 @@ Two PowerShell in-memory execution tools.
 ---
 
 ### `uac-bypass/`
-`fodhelper.exe` registry hijack. Writes the payload command into `HKCU\Software\Classes\ms-settings\shell\open\command`, launches `fodhelper.exe`, and cleans up. The `uac-bypass.ps1` has AMSI bypass baked in and builds all sensitive strings from char arrays to avoid static detection. Manual one-liners are also documented for when you already have a shell and just need quick elevation.
+`fodhelper.exe` registry hijack in two variants: the classic `DelegateExecute` trick (`uac-bypass.ps1`) and the **CurVer** variant (`uac-bypass-curver.ps1`, more reliable on newer Win10/11). Also includes **CMSTP** (`cmstp.ps1`) and **EventViewer** (`invoke-eventviewer.ps1`) UAC bypasses. The PowerShell variants have AMSI bypass baked in and build all sensitive strings from char arrays to avoid static detection.
 
 ---
 
@@ -68,12 +68,17 @@ Additional AppLocker bypass payloads beyond InstallUtil: `msbuild` inline-task e
 ---
 
 ### `lateral-movement/`
-WinRM/PSRemoting and WMI lateral-movement helpers, plus persistence (registry Run key, scheduled task, WMI event subscription) and a Constrained Language Mode (CLM) bypass.
+Lateral movement & persistence: WinRM/PSRemoting, WMI `Win32_Process`, SMB named-pipe fileless remoting (`invoke-smbremoting.ps1`), service hijack (`psexec-lat.cs`), MSSQL CLR (`mssql-clr/`), plus persistence (registry Run key, scheduled task, WMI event subscription) and a Constrained Language Mode (CLM) bypass.
 
 ---
 
 ### `nimsyscallpacker/`
 Integration with [NimSyscallPacker](https://github.com/S3cur3Th1sSh1t/NimSyscallPacker) — packs raw shellcode (msfvenom)/PE/C# into a Nim binary using direct/indirect syscalls, ntdll unhooking, and AMSI/ETW bypass for stronger AV evasion. See its `README.md` for the build setup and workflow.
+
+---
+
+### `supersharpshooter/`
+Integration with [SuperSharpShooter](https://github.com/ScriptIdiot/SuperSharpShooter) (a fork of MDSec's SharpShooter) — an optional delivery layer that turns msfvenom raw shellcode into JScript/VBScript/HTA/VBA-macro/Excel-SLK payloads via **DotNetToJScript** (in-memory .NET through `cscript`/`wscript`/`mshta`), **squiblytwo** XSL stylesheets for `wmic`/`regsvr32`, HTML smuggling, and sandbox evasion. Use it for AppLocker bypass / initial access where PowerShell and disk EXEs are blocked. See its `README.md` for setup and step-by-step examples.
 
 ---
 
@@ -83,8 +88,10 @@ Integration with [NimSyscallPacker](https://github.com/S3cur3Th1sSh1t/NimSyscall
 |---|---|
 | msfvenom / msfconsole | Generate shellcode, payloads, and stagers (Metasploit) |
 | Sliver (optional) | Alternative C2 — only if you prefer it over Metasploit |
-| Python 3 | Encryption scripts, format conversion, HTTP server |
+| Python 3 | Encryption scripts, format conversion |
+| Apache2 | HTTP file hosting (`/var/www/html/`) |
 | .NET SDK | Compile C# runners |
 | Visual Studio / VS Code | Build C# projects (Release, x64) |
 | Nim + MinGW-w64 | Build NimSyscallPacker payloads (see `nimsyscallpacker/`) |
+| SuperSharpShooter (optional) | DotNetToJScript / squiblytwo delivery (see `supersharpshooter/`) |
 

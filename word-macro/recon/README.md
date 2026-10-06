@@ -13,9 +13,10 @@
 serverURL = "http://192.168.45.229" & path
 ```
 
-**2. Start a listener:**
+**2. Start the web server:**
 ```bash
-python3 -m http.server 80
+sudo systemctl start apache2
+tail -f /var/log/apache2/access.log    # watch the GET path
 ```
 
 **3. Insert into Word:**

