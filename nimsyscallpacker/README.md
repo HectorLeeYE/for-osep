@@ -6,10 +6,6 @@ it via **direct/indirect syscalls**, with **ntdll unhooking**, **AMSI/ETW bypass
 and optional **encryption** — a strong AV/EDR evasion layer on top of the plain
 C#/PowerShell/VBA loaders.
 
-> ⚠️ **Note:** NimSyscallPacker is **deprecated / unmaintained** (its author now
-> ships the commercial *RustPack*). It still works with the pinned toolchain
-> below, but don't expect bug fixes. Test on a lab VM before exam day.
-
 ---
 
 ## 1. Build the packer

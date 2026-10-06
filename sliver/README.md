@@ -5,14 +5,14 @@ workflow with **Sliver** across the rest of `osep-tools`.
 
 ---
 
-## 1. Install & start Sliver
+## 1. Install & start Sliver (v1.7.x)
 
 ```bash
-# One-liner (Linux) — installs the sliver-server + sliver client
+# One-liner (Linux) — installs the single `sliver` binary to your PATH
 curl https://sliver.sh/install | sudo bash
 
-# Start the server (daemon), then open the client console
-sliver-server daemon &
+# Start it — `sliver` launches the client console and auto-starts the server
+# on first run, so you can drive everything from this single prompt.
 sliver
 ```
 
@@ -123,14 +123,26 @@ sliver (IMPLANT) > execute -o runner.exe
 
 ## 6. Shellcode format conversion (`sliver2arrays.py`)
 
+`sliver2arrays.py` is a helper that ships **in this repo** (`osep-tools/sliver/`)
+— it is unrelated to the Sliver C2 binary. It converts raw shellcode
+(`--format shellcode`) into C#/PowerShell/VBA/Nim array syntax.
+
 ```bash
-# Sliver raw shellcode -> C# / PS1 / VBA / Nim array syntax
+# Run from the osep-tools repo root:
 python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp
 python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1
 python3 sliver/sliver2arrays.py /tmp/sc.bin --vba
 python3 sliver/sliver2arrays.py /tmp/sc.bin --nim
 python3 sliver/sliver2arrays.py /tmp/sc.bin --all
+
+# Optional — symlink into your PATH so it works from any directory:
+#   ln -s "$(pwd)/sliver/sliver2arrays.py" ~/.local/bin/sliver2arrays
 ```
+
+> Tip: for C# and PowerShell loaders you usually don't need this — Sliver's
+> `--format csharp` / `--format ps1` already emit the array. The converter is
+> mainly for `--format shellcode` (raw binary) and for VBA `Array(...)`, which
+> Sliver does not emit directly.
 
 Then paste the output into the matching encryptor/loader (e.g. feed the C#
 output into `aes-shellcode-encryption.cs`, the VBA output into the

