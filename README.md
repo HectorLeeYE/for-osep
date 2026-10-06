@@ -57,11 +57,6 @@ Two PowerShell in-memory execution tools.
 
 ---
 
-### `sliver/`
-Sliver C2 integration — replaces msfvenom/meterpreter across the toolkit. `README.md` covers listener setup (mtls/http/https/wg/dns), implant generation, and stage listeners; `sliver2arrays.py` converts Sliver raw shellcode into C#/PowerShell/VBA/Nim byte-array syntax for the loaders and encryptors.
-
----
-
 ### `cs-loaders/`
 Additional C# injection loaders using lower-level Windows APIs for the OSEP techniques not covered by the AES loaders: Nt* direct-API injection (`NtAllocateVirtualMemory`/`NtWriteVirtualMemory`/`NtCreateThreadEx`), APC/Early-Bird injection, dynamic API resolution (DInvoke-style), and ntdll unhooking.
 

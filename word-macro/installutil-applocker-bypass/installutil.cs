@@ -36,6 +36,11 @@ namespace InstallUtil
             {
                 Console.WriteLine(result.ToString());
             }
+            // Surface PowerShell errors — otherwise failures are silent:
+            foreach (var err in ps.Streams.Error)
+            {
+                System.IO.File.AppendAllText(@"C:\hta_error.txt", resource + ": " + err.ToString() + Environment.NewLine);
+            }
             ps.Commands.Clear();
         }
     }
