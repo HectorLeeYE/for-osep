@@ -38,7 +38,7 @@ PowerShell AMSI bypass scripts. The `amsi-bypass.ps1` patches `AmsiOpenSession` 
 ---
 
 ### `hta-delivery/`
-HTA file executed by `mshta.exe`. Downloads a base64-encoded payload via `bitsadmin`, decodes it with `certutil`, and runs it through `installutil.exe /U`. A clean alternative to Word macros when Office isn't available on the target.
+HTA file executed by `mshta.exe`. Two delivery wrappers: `red.hta` runs an in-memory PowerShell download cradle (`payload.ps1`, no disk artifacts); `black.hta` downloads a base64-encoded **.NET InstallUtil payload** (`shell.exe`) via `bitsadmin`, decodes it with `certutil`, and runs it through `installutil.exe /U` (AppLocker bypass). Note that because InstallUtil only executes .NET assemblies, `shell.exe` must be a compiled C# installer payload — not a raw Sliver/Go implant. A clean alternative to Word macros when Office isn't available on the target.
 
 ---
 

