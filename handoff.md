@@ -1,4 +1,4 @@
-Purpose: This document captures the analysis of osep-tools and provides a concrete build plan for adding modern, evasive tooling suitable for OSEP/PEN-300 engagements where Windows Defender is active.
+Purpose: This document captures the analysis of  and provides a concrete build plan for adding modern, evasive tooling suitable for OSEP/PEN-300 engagements where Windows Defender is active.
 
 Context: The existing repository uses well-known techniques that are now signatured. The primary goal is to add a PowerShell-free InstallUtil C# shellcode loader with modern evasion, plus supporting workflows for shellcode generation and delivery.
 

