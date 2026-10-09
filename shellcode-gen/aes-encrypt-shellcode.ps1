@@ -9,7 +9,7 @@
     - AesIV               (16 bytes)
     - EncryptedShellcode  (ciphertext)
 
-  The Key and IV are randomly generated each run. Save them securely — they are required
+  The Key and IV are randomly generated each run. Save them securely - they are required
   for decryption at runtime.
 
 .EXAMPLE
@@ -51,4 +51,4 @@ $out += Format-ByteArray $ciphertext     "EncryptedShellcode"
 
 $out -join "`n" | Set-Content -Path $OutputFile -Encoding ASCII
 Write-Host "[+] Wrote AES data to $OutputFile"
-Write-Host "[!] Save the key/IV securely — they are required for decryption"
+Write-Host "[!] Save the key/IV securely - they are required for decryption"
