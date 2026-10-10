@@ -5,7 +5,7 @@ Maps each tool in this repository to the detection layers it addresses. Use this
 | Tool | AMSI | Signature | Behavioral | Memory | Network |
 |------|------|-----------|------------|--------|---------|
 | `installutil/section-injection` | ❌ | ✅ (AES) | ⚠️ Section chain | ✅ (RW→RX) | ❌ |
-| `installutil/callback-injection` | ❌ | ✅ (AES) | ✅ (no CreateThread) | ✅ (RW→RX) | ❌ |
+| `installutil/callback-injection` | ❌ | ✅ (AES) | ✅ (no thread creation, local) | ✅ (RW→RX) | ❌ |
 | `installutil/runspace-loader` | ✅ (C# bypass) | ⚠️ | ⚠️ | N/A | ⚠️ |
 | `aes-loaders/aes-process-injection` | ❌ | ⚠️ | ❌ (RWX) | ⚠️ | ❌ |
 | `aes-loaders/aes-process-hollowing` | ❌ | ⚠️ | ⚠️ (no CreateThread) | ⚠️ (RWX during hollow) | ❌ |
@@ -17,6 +17,7 @@ Maps each tool in this repository to the detection layers it addresses. Use this
 | `hta-delivery/black.hta` | ❌ | ❌ | ❌ (bitsadmin + certutil) | N/A | ❌ (HTTP download) |
 | `hta-delivery/self-decode-method` | ❌ | ✅ (embedded payload) | ⚠️ (ADODB.Stream) | N/A | ❌ |
 | `hta-delivery/certutil-method` | ❌ | ⚠️ | ❌ (certutil) | N/A | ❌ (HTTP download) |
+| `hta-delivery/http-decode-method` | ❌ | ✅ (downloaded at runtime, HTA is ~2KB) | ⚠️ (ADODB.Stream + MSXML2 COM objects, no LOLBins) | N/A | ❌ (HTTP download, browser UA) |
 | `ps-loaders/ps-loader.ps1` | ✅ (AMSI+ETW patch) | ❌ | ❌ | ❌ | ⚠️ (HTTP download) |
 | `ps-loaders/ps-shellcode-runner.ps1` | ✅ | ❌ | ❌ | ❌ | ❌ |
 | `amsi-bypass/amsi-bypass.ps1` | ✅ | ❌ (signatured) | N/A | N/A | N/A |
@@ -46,8 +47,10 @@ Maps each tool in this repository to the detection layers it addresses. Use this
 | Scenario | Recommended tool |
 |----------|-----------------|
 | Initial access, Defender active, no PowerShell allowed | `installutil/section-injection` |
-| CreateRemoteThread flagged, need alternative execution | `installutil/callback-injection` |
+| CreateRemoteThread flagged, need alternative execution | `installutil/callback-injection` (local) or APC injection |
 | Need PowerShell post-exploitation with AMSI bypass | `installutil/runspace-loader` |
-| No Office, no PowerShell, need HTA delivery | `hta-delivery/self-decode-method` |
+| No Office, no PowerShell, need HTA delivery | `hta-delivery/http-decode-method` (downloads over HTTP, no LOLBins) |
+| HTA delivery but can't embed b64 (file size / formatting) | `hta-delivery/http-decode-method` |
+| HTA delivery, no HTTP server available | `hta-delivery/self-decode-method` (embedded b64) |
 | AppLocker bypass with Word macro | `word-macro/installutil-applocker-bypass` |
 | Lab/testing, maximum compatibility | `aes-loaders/aes-normal-runner` |

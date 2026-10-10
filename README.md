@@ -40,6 +40,7 @@ HTA files executed by `mshta.exe`. Multiple delivery methods for getting a paylo
 | `red.hta` | Alternate LOLBin chain |
 | `certutil-method/` | certutil download + decode + InstallUtil — simpler, uses monitored LOLBins |
 | `self-decode-method/` | Embedded Base64 payload decoded via VBScript (MSXML2 + ADODB.Stream) — no bitsadmin/certutil |
+| `http-decode-method/` | HTTP download via MSXML2.XMLHTTP + decode via MSXML2 + write via ADODB.Stream + InstallUtil — no LOLBins, HTA stays ~2KB |
 
 ---
 
@@ -49,7 +50,7 @@ PowerShell-free InstallUtil loaders. Executed via `InstallUtil.exe /U` — no AM
 | Folder | Technique |
 |---|---|
 | `section-injection/` | AES-encrypted shellcode + `NtCreateSection`/`NtMapViewOfSection` injection with RW→RX transitions. Targets RuntimeBroker.exe by default. |
-| `callback-injection/` | Same as section-injection but uses `CallWindowProc` instead of `CreateRemoteThread` — for when thread creation is flagged. |
+| `callback-injection/` | Local execution via `CallWindowProc` callback — no `CreateThread`/`CreateRemoteThread` at all. For when any thread creation is flagged. |
 | `runspace-loader/` | C#-native AMSI bypass + PowerShell runspace. For payloads that need PowerShell post-exploitation without AMSI text signatures. |
 
 ---
@@ -102,8 +103,9 @@ cd ..\installutil\section-injection
 
 # 5. Deliver and execute
 certutil -encode loader.exe loader.b64
-#    Embed loader.b64 in an HTA (hta-delivery/self-decode-method/)
-#    or host it and use hta-delivery/certutil-method/
+#    Host loader.b64 and use hta-delivery/http-decode-method/loader.hta  ← recommended
+#    or embed loader.b64 in hta-delivery/self-decode-method/loader.hta
+#    or host it and use hta-delivery/certutil-method/loader.hta
 
 # On target:
 C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /U %TEMP%\svc.exe

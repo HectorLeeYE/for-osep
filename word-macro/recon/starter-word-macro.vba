@@ -6,9 +6,9 @@ Sub AutoOpen()
     regValue = WindowShell.RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Policies\Microsoft\Windows\SrpV2\Exe")
     Dim applockerStatus As String
     If Err <> 0 Then
-        applockerStatus = "on"  ' Assume AppLocker is on if key read fails
+        applockerStatus = "off"  ' AppLocker is off if key doesn't exist
     Else
-        applockerStatus = "off" ' AppLocker is off if key exists
+        applockerStatus = "on"   ' AppLocker is on if key exists (policies configured)
     End If
     On Error GoTo 0  ' Reset error handling
     

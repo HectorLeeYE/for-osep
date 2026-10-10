@@ -32,7 +32,10 @@ $archFlag = switch ($Arch) { "x86" { 1 } "x64" { 2 } "both" { 3 } }
 $compFlag = if ($SkipCompression) { 1 } else { 2 }   # 2 = aPLib (cross-platform)
 $encFlag  = if ($SkipEncryption)  { 1 } else { 3 }   # 3 = random names + Chaskey
 
-$binFile = [IO.Path]::GetTempFileName() + ".bin"
+# FIXED: Use a temp file path without creating the file first (avoids orphan .tmp file)
+$binFile = [IO.Path]::Combine([IO.Path]::GetTempPath(), "donut_$(Get-Random).bin")
+
+if (-not (Test-Path $DonutPath)) { throw "donut.exe not found at: $DonutPath" }
 
 & $DonutPath -i $InputFile -a $archFlag -f 1 -z $compFlag -e $encFlag -o $binFile
 
@@ -50,5 +53,5 @@ $hex
 };
 "@ | Set-Content -Path $OutputFile -Encoding ASCII
 
-Remove-Item $binFile -Force
+Remove-Item $binFile -Force -ErrorAction SilentlyContinue
 Write-Host "[+] Wrote $($bytes.Length) bytes to $OutputFile"

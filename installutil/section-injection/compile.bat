@@ -20,5 +20,5 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe ^
 if %ERRORLEVEL% EQU 0 (
     echo [+] Build succeeded: loader.exe
 ) else (
-    echo [!] Build failed — check error messages above
+    echo [!] Build failed - check error messages above
 )

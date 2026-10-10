@@ -4,7 +4,7 @@
 
 | File | Purpose |
 |---|---|
-| `amsi-bypass.ps1` | PowerShell — patches `AmsiOpenSession` in memory via `VirtualProtect` + `xor rax,rax` |
+| `amsi-bypass.ps1` | PowerShell — patches `AmsiOpenSession` in memory via `VirtualProtect` + `mov eax, 0x80070057; ret` (E_INVALIDARG) |
 | `amsi-techniques.md` | Reference — three AMSI bypass techniques with code |
 
 ## Usage

@@ -17,8 +17,8 @@ Function MyMacro()
     Dim t2 As Date
     Dim time As Long
     
-    ' Exit if FlsAlloc fails
-    If IsNull(FlsAlloc(tmp)) Then Exit Function
+    ' Exit if FlsAlloc fails (returns FLS_OUT_OF_INDEXES = &HFFFFFFFF on failure)
+    If FlsAlloc(tmp) = &HFFFFFFFF Then Exit Function
 
     ' Timing check
     t1 = Now()

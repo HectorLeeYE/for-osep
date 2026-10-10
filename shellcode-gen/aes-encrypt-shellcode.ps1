@@ -25,6 +25,9 @@ param(
 )
 
 $plaintext = [IO.File]::ReadAllBytes($InputFile)
+if ($plaintext.Length -eq 0) {
+    Write-Warning "Input file is empty or 0 bytes - ciphertext will be a single padding block (16 bytes)"
+}
 $aes = [System.Security.Cryptography.Aes]::Create()
 $aes.KeySize = 256
 $aes.Mode    = [System.Security.Cryptography.CipherMode]::CBC
@@ -36,6 +39,10 @@ $encryptor = $aes.CreateEncryptor()
 $ciphertext = $encryptor.TransformFinalBlock($plaintext, 0, $plaintext.Length)
 
 function Format-ByteArray($bytes, $name, $type = "byte") {
+    if ($null -eq $bytes -or $bytes.Length -eq 0) {
+        # Empty array - output valid C# empty initializer (not { 0x })
+        return "private static readonly $type[] $name = new $type[0] { };"
+    }
     $hex = ($bytes | ForEach-Object { "0x{0:X2}" -f $_ }) -join ","
     "private static readonly $type[] $name = new $type[$($bytes.Length)] { $hex };"
 }

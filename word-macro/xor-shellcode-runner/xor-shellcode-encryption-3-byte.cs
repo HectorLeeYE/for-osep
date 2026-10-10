@@ -9,17 +9,6 @@ namespace XOR_ShellCode_Encrypter_Helper_VBA_3Byte
     {
         static void Main(string[] args)
         {
-            int NextInt(int min, int max)
-            {
-                RNGCryptoServiceProvider rng = new RNGCryptoServiceProvider();
-                byte[] buffer = new byte[4];
-
-                rng.GetBytes(buffer);
-                int result = BitConverter.ToInt32(buffer, 0);
-
-                return new Random(result).Next(min, max);
-            }
-
             // Generate a 3-byte key
             byte[] key = new byte[3];
             RNGCryptoServiceProvider rngKey = new RNGCryptoServiceProvider();
@@ -54,10 +43,10 @@ namespace XOR_ShellCode_Encrypter_Helper_VBA_3Byte
             Console.WriteLine("");
             Console.WriteLine("[+] Encrypted Bytes");
             Console.WriteLine("");
-            string fileContent = $"Warhead = Array(" + hex.ToString() + ")";
+            string fileContent = "Warhead = Array(" + hex.ToString() + ")";
             string path = "xor_out.txt";
             File.WriteAllText(path, fileContent);
-            Console.WriteLine($"Warhead = Array(" + hex.ToString() + ")");
+            Console.WriteLine("Warhead = Array(" + hex.ToString() + ")");
             Console.WriteLine("");
             Console.WriteLine("");
             Console.WriteLine("[+] Place keys into VBA scipt:");
@@ -65,7 +54,7 @@ namespace XOR_ShellCode_Encrypter_Helper_VBA_3Byte
             Console.WriteLine("Dim key(2) As Byte");
             for (int i = 0; i < key.Length; i++)
             {
-                Console.WriteLine($"key({i}) = {key[i]}");
+                Console.WriteLine("key(" + i + ") = " + key[i]);
             }
             Console.WriteLine("");
             Console.WriteLine("");

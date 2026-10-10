@@ -6,8 +6,8 @@ PowerShell-free C# loaders executed via `InstallUtil.exe /U`. These are the mode
 
 | Folder | Execution primitive | When to use |
 |--------|---------------------|-------------|
-| `section-injection/` | `CreateRemoteThread` | Default — primary initial-access vector |
-| `callback-injection/` | `CallWindowProc` | When `CreateRemoteThread` is flagged behaviorally |
+| `section-injection/` | `CreateRemoteThread` (remote) | Default — primary initial-access vector |
+| `callback-injection/` | `CallWindowProc` (local) | When any thread creation is flagged behaviorally |
 | `runspace-loader/` | PowerShell runspace | When you need PowerShell post-exploitation with C#-native AMSI bypass |
 
 ## Shared evasion layers
@@ -15,13 +15,20 @@ PowerShell-free C# loaders executed via `InstallUtil.exe /U`. These are the mode
 All loaders include:
 
 - **Sandbox checks** — FLS callback check + Sleep timing check
-- **AES-256-CBC** — shellcode encrypted at build time, decrypted in memory
-- **Configurable target** — default `RuntimeBroker.exe` (override with `INJ_TARGET` env var)
 
 Section-injection and callback-injection additionally include:
 
-- **Section-based injection** — `NtCreateSection` + `NtMapViewOfSection` (avoids `VirtualAllocEx` + `WriteProcessMemory`)
+- **AES-256-CBC** — shellcode encrypted at build time, decrypted in memory
+- **Section-based allocation** — `NtCreateSection` + `NtMapViewOfSection` (avoids `VirtualAllocEx` + `WriteProcessMemory`)
 - **RW→RX transitions** — memory starts RW, flipped to RX before execution (no RWX pages)
+
+Section-injection also includes:
+
+- **Configurable remote target** — default `RuntimeBroker.exe` (override with `INJ_TARGET` env var)
+
+Runspace-loader also includes:
+
+- **C#-native AMSI bypass** — corrupts `AmsiUtils.amsiContext` before runspace creation
 
 ## Build workflow
 
@@ -47,6 +54,8 @@ The `/U` flag triggers the `Uninstall()` method — that's where the payload run
 - Method signature: `public override void Uninstall(System.Collections.IDictionary savedState)`
 - Must be .NET Framework (not .NET Core / .NET 5+)
 - `/U` flag triggers `Uninstall()`; default triggers `Install()`
+- When compiling as `/target:exe`, the assembly must also contain a `static void Main` entry point (can be empty) - InstallUtil invokes `Uninstall()`, not `Main()`
+- `System.Management.Automation.dll` (runspace-loader only) is in the GAC, not the framework directory - `compile.bat` locates it automatically
 
 ## Detection
 
