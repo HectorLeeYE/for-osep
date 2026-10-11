@@ -20,7 +20,7 @@ Section-injection and callback-injection additionally include:
 
 - **AES-256-CBC** — shellcode encrypted at build time, decrypted in memory
 - **Section-based allocation** — `NtCreateSection` + `NtMapViewOfSection` (avoids `VirtualAllocEx` + `WriteProcessMemory`)
-- **RW→RX transitions** — memory starts RW, flipped to RX before execution (no RWX pages)
+- **Write/execute view split** — shellcode is written through an RW section view and executed from a separate RX view (section views cannot be flipped with `NtProtectVirtualMemory`)
 
 Section-injection also includes:
 

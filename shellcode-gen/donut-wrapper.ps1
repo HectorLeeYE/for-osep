@@ -32,7 +32,7 @@ $archFlag = switch ($Arch) { "x86" { 1 } "x64" { 2 } "both" { 3 } }
 $compFlag = if ($SkipCompression) { 1 } else { 2 }   # 2 = aPLib (cross-platform)
 $encFlag  = if ($SkipEncryption)  { 1 } else { 3 }   # 3 = random names + Chaskey
 
-# FIXED: Use a temp file path without creating the file first (avoids orphan .tmp file)
+# Keep the binary file for potential aes-encrypt-shellcode.ps1 usage
 $binFile = [IO.Path]::Combine([IO.Path]::GetTempPath(), "donut_$(Get-Random).bin")
 
 if (-not (Test-Path $DonutPath)) { throw "donut.exe not found at: $DonutPath" }
@@ -40,6 +40,11 @@ if (-not (Test-Path $DonutPath)) { throw "donut.exe not found at: $DonutPath" }
 & $DonutPath -i $InputFile -a $archFlag -f 1 -z $compFlag -e $encFlag -o $binFile
 
 if (-not (Test-Path $binFile)) { throw "Donut failed to produce output" }
+
+# Copy the binary next to the output file for aes-encrypt-shellcode.ps1 usage
+$binOutputFile = [IO.Path]::ChangeExtension($OutputFile, ".bin")
+Copy-Item $binFile $binOutputFile -Force
+Write-Host "[+] Saved raw shellcode binary to: $binOutputFile"
 
 $bytes = [IO.File]::ReadAllBytes($binFile)
 $hex = ($bytes | ForEach-Object { "0x{0:X2}" -f $_ }) -join ","
@@ -55,3 +60,4 @@ $hex
 
 Remove-Item $binFile -Force -ErrorAction SilentlyContinue
 Write-Host "[+] Wrote $($bytes.Length) bytes to $OutputFile"
+Write-Host "[+] Raw shellcode binary saved to: $binOutputFile"

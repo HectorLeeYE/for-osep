@@ -13,7 +13,8 @@ InstallUtil-compatible C# loader that uses **CallWindowProc** for shellcode exec
 | Behavioral indicator | Thread creation in remote process | None (callback invocation) |
 | When to use | Default for remote injection | When any thread creation is flagged |
 
-Both loaders share the same evasion layers: sandbox checks, AES encryption, section injection, and RW→RX memory transitions.
+Both loaders share the same evasion layers: sandbox checks, AES encryption, section-based allocation, and a
+write/execute view split (no RWX pages in the target).
 
 ## Build
 
@@ -28,12 +29,12 @@ C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe /U loader.exe
 ## How callback execution works
 
 ```
-1. Section created (NtCreateSection, PAGE_READWRITE, SEC_COMMIT)
-2. Section mapped into local process (NtMapViewOfSection, RW)
-3. Decrypted shellcode written to local view (Marshal.Copy)
-4. Section handle closed (view persists)
-5. NtProtectVirtualMemory flips local view to RX  ← RW→RX transition
-6. CallWindowProc(localView, 0, 0, 0, 0)
+1. Section created (NtCreateSection, PAGE_EXECUTE_READWRITE, SEC_COMMIT)
+2. Section mapped into local process as RW (NtMapViewOfSection)
+3. Decrypted shellcode written to the RW view (Marshal.Copy)
+4. RW view unmapped (section pages persist)
+5. Section re-mapped as PAGE_EXECUTE_READ (executable view)
+6. CallWindowProc(execView, 0, 0, 0, 0)
    └─ Invokes the shellcode address as a window procedure callback
    └─ No new thread is created (no CreateThread, no CreateRemoteThread)
 7. NtUnmapViewOfSection cleans up after execution returns

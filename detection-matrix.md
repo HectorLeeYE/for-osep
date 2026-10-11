@@ -4,7 +4,7 @@ Maps each tool in this repository to the detection layers it addresses. Use this
 
 | Tool | AMSI | Signature | Behavioral | Memory | Network |
 |------|------|-----------|------------|--------|---------|
-| `installutil/section-injection` | ❌ | ✅ (AES) | ⚠️ Section chain | ✅ (RW→RX) | ❌ |
+| `installutil/section-injection` | ❌ | ✅ (AES) | ⚠️ Section chain | ✅ (write/exec view split) | ❌ |
 | `installutil/callback-injection` | ❌ | ✅ (AES) | ✅ (no thread creation, local) | ✅ (RW→RX) | ❌ |
 | `installutil/runspace-loader` | ✅ (C# bypass) | ⚠️ | ⚠️ | N/A | ⚠️ |
 | `aes-loaders/aes-process-injection` | ❌ | ⚠️ | ❌ (RWX) | ⚠️ | ❌ |
@@ -38,7 +38,7 @@ Maps each tool in this repository to the detection layers it addresses. Use this
 |-------|----------------|----------------|
 | **AMSI** | Malicious PowerShell/VBS/JScript content scanning | `AmsiScanBuffer` hits, script content patterns |
 | **Signature** | Known-bad file hashes and byte patterns | SHA256 matches, YARA rules, static byte sequences |
-| **Behavioral** | Suspicious API call sequences and process行为 | `VirtualAllocEx`+`WriteProcessMemory`+`CreateRemoteThread`, `NtCreateSection` chains, LOLBin usage |
+| **Behavioral** | Suspicious API call sequences and process behavior | `VirtualAllocEx`+`WriteProcessMemory`+`CreateRemoteThread`, `NtCreateSection` chains, LOLBin usage |
 | **Memory** | In-memory scanning of process address spaces | RWX regions, unbacked executable pages, decrypted shellcode patterns |
 | **Network** | C2 traffic patterns and connections | HTTP beacons, DNS tunneling, TLS certificate anomalies |
 

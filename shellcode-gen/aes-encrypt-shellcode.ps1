@@ -24,6 +24,16 @@ param(
     [Parameter(Mandatory=$true)][string]$OutputFile
 )
 
+# Resolve to absolute path to handle relative paths correctly
+if (-not [IO.Path]::IsPathRooted($InputFile)) {
+    $InputFile = Join-Path (Get-Location) $InputFile
+}
+if (-not [IO.Path]::IsPathRooted($OutputFile)) {
+    $OutputDir = Join-Path (Get-Location) (Split-Path $OutputFile -Parent)
+    if ($OutputDir -and -not (Test-Path $OutputDir)) { New-Item -ItemType Directory -Path $OutputDir -Force }
+    $OutputFile = Join-Path (Get-Location) $OutputFile
+}
+
 $plaintext = [IO.File]::ReadAllBytes($InputFile)
 if ($plaintext.Length -eq 0) {
     Write-Warning "Input file is empty or 0 bytes - ciphertext will be a single padding block (16 bytes)"

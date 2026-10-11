@@ -1,0 +1,5 @@
+﻿Uninstalling assembly 'C:\MALDEV\for-osep\installutil\runspace-loader\loader.exe'.
+Affected parameters are:
+   logtoconsole = 
+   assemblypath = C:\MALDEV\for-osep\installutil\runspace-loader\loader.exe
+   logfile = C:\MALDEV\for-osep\installutil\runspace-loader\loader.InstallLog

